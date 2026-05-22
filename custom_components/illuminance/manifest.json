@@ -4,8 +4,8 @@
   "codeowners": ["@pnbruckner"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/pnbruckner/ha-illuminance/blob/5.8.0/README.md",
+  "documentation": "https://github.com/pnbruckner/ha-illuminance/blob/5.8.1/README.md",
   "issue_tracker": "https://github.com/pnbruckner/ha-illuminance/issues",
   "requirements": [],
-  "version": "5.8.0"
+  "version": "5.8.1"
 }
