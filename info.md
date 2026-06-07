@@ -1,4 +1,4 @@
-# <img src="https://brands.home-assistant.io/illuminance/icon.png" alt="Sun2 Sensor" width="50" height="50"/> Illuminance Sensor
+# <img src="custom_components/illuminance/brand/icon.png" alt="Illuminance Sensor" width="50" height="50"/> Illuminance Sensor
 
 Creates a `sensor` entity that estimates outdoor illuminance based on either sun elevation or time of day.
 In either case, the value can be further adjusted based on current weather conditions obtained from another, existing entity.
