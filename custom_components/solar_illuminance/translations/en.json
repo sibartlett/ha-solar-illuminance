@@ -1,5 +1,5 @@
 {
-    "title": "Illuminance",
+    "title": "Solar Illuminance",
     "config": {
         "step": {
             "options": {
@@ -22,7 +22,7 @@
     },
     "device": {
         "service": {
-            "name": "Illuminance"
+            "name": "Solar Illuminance"
         }
     },
     "options": {
@@ -51,7 +51,7 @@
     "services": {
         "reload": {
             "name": "Reload",
-            "description": "Reloads Illuminance from the YAML-configuration."
+            "description": "Reloads Solar Illuminance from the YAML-configuration."
         }
     }
 }

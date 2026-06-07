@@ -1,8 +1,8 @@
-"""Constants for Illumiance integration."""
+"""Constants for Solar Illuminance integration."""
 from datetime import timedelta
 
-DOMAIN = "illuminance"
-DEFAULT_NAME = "Illuminance"
+DOMAIN = "solar_illuminance"
+DEFAULT_NAME = "Solar Illuminance"
 MIN_SCAN_INTERVAL_MIN = 0.5
 MIN_SCAN_INTERVAL = timedelta(minutes=MIN_SCAN_INTERVAL_MIN)
 DEFAULT_SCAN_INTERVAL_MIN = 5

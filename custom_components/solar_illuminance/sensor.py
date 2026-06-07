@@ -1,4 +1,4 @@
-"""Illuminance Sensor.
+"""Solar Illuminance Sensor.
 
 A Sensor platform that estimates outdoor illuminance from current weather conditions.
 """
@@ -133,7 +133,7 @@ class Mode(Enum):
 
 MODES = list(Mode.__members__)
 
-ILLUMINANCE_SCHEMA = {
+SOLAR_ILLUMINANCE_SCHEMA = {
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
         cv.time_period, vol.Range(min=MIN_SCAN_INTERVAL)
@@ -150,8 +150,8 @@ Num = float | int
 
 
 @dataclass
-class IlluminanceSensorEntityDescription(SensorEntityDescription):  # type: ignore[misc]
-    """Illuminance sensor entity description."""
+class SolarIlluminanceSensorEntityDescription(SensorEntityDescription):  # type: ignore[misc]
+    """Solar Illuminance sensor entity description."""
 
     weather_entity: str | None = None
     mode: Mode | None = None
@@ -182,7 +182,7 @@ async def async_setup_entry(
         native_unit_of_measurement = LIGHT_LUX
         suggested_display_precision = 0
 
-    entity_description = IlluminanceSensorEntityDescription(
+    entity_description = SolarIlluminanceSensorEntityDescription(
         key=DOMAIN,
         device_class=device_class,
         name=entry.title,
@@ -196,7 +196,7 @@ async def async_setup_entry(
         scan_interval=timedelta(minutes=entry.options[CONF_SCAN_INTERVAL]),
     )
 
-    async_add_entities([IlluminanceSensor(entity_description)], True)
+    async_add_entities([SolarIlluminanceSensor(entity_description)], True)
 
 
 def _illumiance(elev: Num) -> float:
@@ -225,10 +225,10 @@ class EntityStatus(IntEnum):
     OK_CONDITION = 3
 
 
-class IlluminanceSensor(SensorEntity):
-    """Illuminance sensor."""
+class SolarIlluminanceSensor(SensorEntity):
+    """Solar Illuminance sensor."""
 
-    entity_description: IlluminanceSensorEntityDescription
+    entity_description: SolarIlluminanceSensorEntityDescription
     _entity_status = EntityStatus.NOT_SEEN
     _sk_mapping: Sequence[tuple[Num, Sequence[str]]] | None = None
     _sk: Num
@@ -236,7 +236,7 @@ class IlluminanceSensor(SensorEntity):
     _warned = False
     _sun_data: tuple[date, tuple[datetime, datetime, datetime, datetime]] | None = None
 
-    def __init__(self, entity_description: IlluminanceSensorEntityDescription) -> None:
+    def __init__(self, entity_description: SolarIlluminanceSensorEntityDescription) -> None:
         """Initialize sensor."""
         self.entity_description = entity_description
         if entity_description.unique_id:

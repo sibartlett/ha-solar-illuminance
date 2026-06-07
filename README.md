@@ -1,4 +1,4 @@
-# <img src="custom_components/illuminance/brand/icon.png" alt="Illuminance Sensor" width="50" height="50"/> Illuminance Sensor
+# <img src="custom_components/solar_illuminance/brand/icon.png" alt="Solar Illuminance Sensor" width="50" height="50"/> Solar Illuminance Sensor
 Creates a `sensor` entity that estimates outdoor illuminance based on either sun elevation or time of day.
 In either case, the value can be further adjusted based on current weather conditions or cloud coverage obtained from another, existing entity.
 
@@ -47,7 +47,7 @@ Or you can manually install the software.
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
 
 1. Add this repo as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/):
-   It should then appear as a new integration. Click on it. If necessary, search for "illuminance".
+   It should then appear as a new integration. Click on it. If necessary, search for "solar illuminance".
    ```text
    https://github.com/pnbruckner/ha-illuminance
    ```
@@ -62,8 +62,8 @@ Or you can manually install the software.
 <details>
 <summary>Manual Installation</summary>
 
-Place a copy of the files from [`custom_components/illuminance`](custom_components/illuminance)
-in `<config>/custom_components/illuminance`,
+Place a copy of the files from [`custom_components/solar_illuminance`](custom_components/solar_illuminance)
+in `<config>/custom_components/solar_illuminance`,
 where `<config>` is your Home Assistant configuration directory.
 
 >__NOTE__: When downloading, make sure to use the `Raw` button from each file's page.
@@ -80,9 +80,9 @@ This custom integration supports HomeAssistant versions 2024.8.3 or newer.
 
 ## Services
 
-### `illuminance.reload`
+### `solar_illuminance.reload`
 
-Reloads Illuminance from the YAML-configuration. Also adds `ILLUMINANCE` to the Developers Tools -> YAML page.
+Reloads Solar Illuminance from the YAML-configuration. Also adds `SOLAR_ILLUMINANCE` to the Developers Tools -> YAML page.
 
 ## Configuration variables
 
@@ -96,7 +96,7 @@ Key | Optional | Description
 `entity_id` | yes | Entity ID of another entity that indicates current weather conditions or cloud coverage percentage
 `fallback` | yes | Illuminance divisor to use when weather data is not available. Must be in the range of 1 (clear) through 10 (dark.) Default is 10 if `entity_id` is used, or 1 if not.
 `mode` | yes | Mode of operation. Choices are `normal` (default) which uses sun elevation, `simple` which uses time of day and `irradiance` which is the same as `normal`, except the value is expressed as irradiance in Watts/M².
-`name` | yes | Name of the sensor. Default is `Illuminance`.
+`name` | yes | Name of the sensor. Default is `Solar Illuminance`.
 `scan_interval` | yes | Update interval. Minimum is 30 seconds. Default is 5 minutes.
 
 ## Releases Before 2.1.0

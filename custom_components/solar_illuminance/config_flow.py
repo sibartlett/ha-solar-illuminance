@@ -1,4 +1,4 @@
-"""Config flow for Illuminance integration."""
+"""Config flow for Solar Illuminance integration."""
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -44,8 +44,8 @@ from .const import (
 from .sensor import MODES
 
 
-class IlluminanceFlow(ConfigEntryBaseFlow):
-    """Illuminance flow mixin."""
+class SolarIlluminanceFlow(ConfigEntryBaseFlow):
+    """Solar Illuminance flow mixin."""
 
     @property
     @abstractmethod
@@ -107,8 +107,8 @@ class IlluminanceFlow(ConfigEntryBaseFlow):
         """Finish the flow."""
 
 
-class IlluminanceConfigFlow(ConfigFlow, IlluminanceFlow, domain=DOMAIN):
-    """Illuminance config flow."""
+class SolarIlluminanceConfigFlow(ConfigFlow, SolarIlluminanceFlow, domain=DOMAIN):
+    """Solar Illuminance config flow."""
 
     VERSION = 1
 
@@ -120,9 +120,9 @@ class IlluminanceConfigFlow(ConfigFlow, IlluminanceFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> IlluminanceOptionsFlow:
+    def async_get_options_flow(config_entry: ConfigEntry) -> SolarIlluminanceOptionsFlow:
         """Get the options flow for this handler."""
-        flow = IlluminanceOptionsFlow(config_entry)
+        flow = SolarIlluminanceOptionsFlow(config_entry)
         flow.init_step = "options"
         return flow
 
@@ -180,8 +180,8 @@ class IlluminanceConfigFlow(ConfigFlow, IlluminanceFlow, domain=DOMAIN):
         return self.async_create_entry(title=self._name, data={}, options=self.options)
 
 
-class IlluminanceOptionsFlow(OptionsFlowWithConfigEntry, IlluminanceFlow):
-    """Illuminance integration options flow."""
+class SolarIlluminanceOptionsFlow(OptionsFlowWithConfigEntry, SolarIlluminanceFlow):
+    """Solar Illuminance integration options flow."""
 
     async def async_step_done(
         self, _: dict[str, Any] | None = None

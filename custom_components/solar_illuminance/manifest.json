@@ -1,6 +1,6 @@
 {
-  "domain": "illuminance",
-  "name": "Illuminance",
+  "domain": "solar_illuminance",
+  "name": "Solar Illuminance",
   "codeowners": ["@pnbruckner"],
   "config_flow": true,
   "dependencies": [],

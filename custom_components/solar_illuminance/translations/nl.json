@@ -1,5 +1,5 @@
 {
-    "title": "Verlichtingssterkte",
+    "title": "Zonne-Verlichtingssterkte",
     "config": {
         "step": {
             "options": {
@@ -21,7 +21,7 @@
     },
     "device": {
         "service": {
-            "name": "Verlichtingssterkte"
+            "name": "Zonne-Verlichtingssterkte"
         }
     },
     "options": {
@@ -49,7 +49,7 @@
     "services": {
         "reload": {
             "name": "Herlaadt",
-            "description": "Herlaadt Verlichtingssterkte vanuit de YAML-configuratie."
+            "description": "Herlaadt Zonne-Verlichtingssterkte vanuit de YAML-configuratie."
         }
     }
 }

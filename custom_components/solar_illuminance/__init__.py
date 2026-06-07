@@ -1,4 +1,4 @@
-"""Illuminance Sensor."""
+"""Solar Illuminance Sensor."""
 from __future__ import annotations
 
 import asyncio
@@ -22,17 +22,17 @@ from homeassistant.helpers.sun import get_astral_location
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
-from .sensor import ILLUMINANCE_SCHEMA, LOC_ELEV
+from .sensor import LOC_ELEV, SOLAR_ILLUMINANCE_SCHEMA
 
-_ILLUMINANCE_SCHEMA = vol.Schema(
-    ILLUMINANCE_SCHEMA
+_SOLAR_ILLUMINANCE_SCHEMA = vol.Schema(
+    SOLAR_ILLUMINANCE_SCHEMA
     | {
         vol.Required(CONF_UNIQUE_ID): cv.string,
     }
 )
 
 CONFIG_SCHEMA = vol.Schema(
-    {vol.Optional(DOMAIN): vol.All(cv.ensure_list, [_ILLUMINANCE_SCHEMA])},
+    {vol.Optional(DOMAIN): vol.All(cv.ensure_list, [_SOLAR_ILLUMINANCE_SCHEMA])},
     extra=vol.ALLOW_EXTRA,
 )
 

@@ -1,5 +1,5 @@
 {
-    "title": "Natężenie oświetlenia",
+    "title": "Natężenie oświetlenia słoneczne",
     "config": {
         "step": {
             "options": {
@@ -21,7 +21,7 @@
     },
     "device": {
         "service": {
-            "name": "Natężenie oświetlenia"
+            "name": "Natężenie oświetlenia słoneczne"
         }
     },
     "options": {
@@ -49,7 +49,7 @@
     "services": {
         "reload": {
             "name": "Przeładowanie",
-            "description": "Ponownie załadowuje natężenie oświetlenia z konfiguracji YAML."
+            "description": "Ponownie załadowuje Natężenie oświetlenia słoneczne z konfiguracji YAML."
         }
     }
 }
