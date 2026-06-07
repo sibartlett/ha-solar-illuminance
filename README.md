@@ -49,11 +49,11 @@ Or you can manually install the software.
 1. Add this repo as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/):
    It should then appear as a new integration. Click on it. If necessary, search for "illuminance".
    ```text
-   https://github.com/pnbruckner/ha-illuminance
+   https://github.com/sibartlett/ha-solar-illuminance
    ```
    Or use this button:
   
-   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=pnbruckner&repository=ha-illuminance&category=integration)
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sibartlett&repository=ha-solar-illuminance&category=integration)
 
 1. Download the integration using the appropriate button.
 
