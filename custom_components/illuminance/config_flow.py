@@ -108,7 +108,7 @@ class IlluminanceFlow(ConfigEntryBaseFlow):
 
 
 class IlluminanceConfigFlow(ConfigFlow, IlluminanceFlow, domain=DOMAIN):
-    """Sun2 config flow."""
+    """Illuminance config flow."""
 
     VERSION = 1
 
@@ -181,7 +181,7 @@ class IlluminanceConfigFlow(ConfigFlow, IlluminanceFlow, domain=DOMAIN):
 
 
 class IlluminanceOptionsFlow(OptionsFlowWithConfigEntry, IlluminanceFlow):
-    """Sun2 integration options flow."""
+    """Illuminance integration options flow."""
 
     async def async_step_done(
         self, _: dict[str, Any] | None = None
