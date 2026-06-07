@@ -1,14 +1,14 @@
 {
-    "title": "Illuminance",
+    "title": "Solar Illuminance",
     "config": {
         "step": {
             "options": {
-                "title": "Illuminance Alternativ",
+                "title": "Solar Illuminance Alternativ",
                 "data": {
                     "mode": "Läge",
                     "entity_id": "Väderdata Källa",
                     "scan_interval": "Uppdateringsperiod i minuter",
-                    "fallback": "Illuminance delning när väderdata inte är tillgänglig"
+                    "fallback": "Solar Illuminance delning när väderdata inte är tillgänglig"
                 }
             },
             "name": {
@@ -21,18 +21,18 @@
     },
     "device": {
         "service": {
-            "name": "Illuminance"
+            "name": "Solar Illuminance"
         }
     },
     "options": {
         "step": {
             "options": {
-                "title": "Illuminance Alternativ",
+                "title": "Solar Illuminance Alternativ",
                 "data": {
                     "mode": "Läge",
                     "entity_id": "Väderdata Källa",
                     "scan_interval": "Uppdateringsperiod i minuter",
-                    "fallback": "Illuminance delning när väderdata inte är tillgänglig"
+                    "fallback": "Solar Illuminance delning när väderdata inte är tillgänglig"
                 }
             }
         }
@@ -49,7 +49,7 @@
     "services": {
         "reload": {
             "name": "Ladda om",
-            "description": "Laddar om Illuminance från YAML-konfigurationen."
+            "description": "Laddar om Solar Illuminance från YAML-konfigurationen."
         }
     }
 }

@@ -1,5 +1,5 @@
 {
-    "title": "Illuminazione",
+    "title": "Illuminazione Solare",
     "config": {
         "step": {
             "options": {
@@ -21,7 +21,7 @@
     },
     "device": {
         "service": {
-            "name": "Illuminazione"
+            "name": "Illuminazione Solare"
         }
     },
     "options": {
@@ -49,7 +49,7 @@
     "services": {
         "reload": {
             "name": "Ricarica",
-            "description": "Ricarica Illuminance dalla configurazione YAML."
+            "description": "Ricarica Illuminazione Solare dalla configurazione YAML."
         }
     }
 }

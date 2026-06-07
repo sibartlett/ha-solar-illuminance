@@ -1,1 +1,1 @@
-"""Illuminance Sensor."""
+"""Solar Illuminance Sensor."""

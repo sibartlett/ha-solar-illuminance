@@ -1,5 +1,5 @@
 {
-    "title": "Osvetlenie",
+    "title": "Solárne osvetlenie",
     "config": {
         "step": {
             "options": {
@@ -22,7 +22,7 @@
     },
     "device": {
         "service": {
-            "name": "Osvetlenie"
+            "name": "Solárne osvetlenie"
         }
     },
     "options": {
@@ -51,7 +51,7 @@
     "services": {
         "reload": {
             "name": "Znovu načítať",
-            "description": "Znovu načíta osvetlenie z YAML-konfigurácie."
+            "description": "Znovu načíta Solárne osvetlenie z YAML-konfigurácie."
         }
     }
 }
