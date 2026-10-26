@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from enum import Enum, auto
 import logging
 from math import asin, cos, exp, radians, sin
-from typing import Any, cast
+from typing import Any
 
 import astral.sun
 from homeassistant.components.sensor import (
@@ -399,22 +399,14 @@ class SolarIlluminanceSensor(SensorEntity):
     def _calculate_illuminance(self, now: datetime) -> Num | None:
         """Calculate sunny illuminance, or None if it's nighttime in simple mode."""
         if self._mode is not Mode.simple:
-            return _illuminance(cast(Num, self._astral_event("solar_elevation", now)))
+            elevation: float = astral.sun.elevation(get_astral_observer(self.hass), now)
+            return _illuminance(elevation)
 
         sun_factor = self._sun_factor(now)
 
         if sun_factor == 0:
             return None
         return 10000 * sun_factor
-
-    def _astral_event(self, event: str, date_or_dt: date | datetime) -> Any:
-        """Get astral event."""
-        observer = get_astral_observer(self.hass)
-        if event == "solar_elevation":
-            return astral.sun.elevation(observer, date_or_dt)
-        if event == "sunrise":
-            return astral.sun.sunrise(observer, date_or_dt)
-        return astral.sun.sunset(observer, date_or_dt)
 
     def _sun_factor(self, now: datetime) -> Num:
         """Calculate sun factor."""
@@ -423,8 +415,9 @@ class SolarIlluminanceSensor(SensorEntity):
         if self._sun_data and self._sun_data[0] == now_date:
             (sunrise_begin, sunrise_end, sunset_begin, sunset_end) = self._sun_data[1]
         else:
-            sunrise = cast(datetime, self._astral_event("sunrise", now_date))
-            sunset = cast(datetime, self._astral_event("sunset", now_date))
+            observer = get_astral_observer(self.hass)
+            sunrise: datetime = astral.sun.sunrise(observer, now_date)
+            sunset: datetime = astral.sun.sunset(observer, now_date)
             sunrise_begin = sunrise - _20_MIN
             sunrise_end = sunrise + _40_MIN
             sunset_begin = sunset - _40_MIN
