@@ -137,13 +137,18 @@ IRRADIANCE = SensorEntityDescription(
 )
 
 
+type SolarIlluminanceConfigEntry = ConfigEntry[SolarIlluminanceSensor]
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: SolarIlluminanceConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    async_add_entities([SolarIlluminanceSensor(entry)])
+    # The sensor is kept for diagnostics.
+    entry.runtime_data = SolarIlluminanceSensor(entry)
+    async_add_entities([entry.runtime_data])
 
 
 def _illuminance(elev: Num) -> float:
@@ -168,11 +173,11 @@ def _cloud_coverage(value: Any) -> float | None:
 
 
 class EntityStatus(Enum):
-    """Status of input entity."""
+    """What the input entity reports."""
 
-    NOT_SEEN = auto()
-    OK_CLOUD = auto()
-    OK_CONDITION = auto()
+    NOT_SEEN = "not seen yet"
+    OK_CLOUD = "cloud coverage"
+    OK_CONDITION = "weather conditions"
 
 
 class SolarIlluminanceSensor(SensorEntity):
@@ -253,6 +258,18 @@ class SolarIlluminanceSensor(SensorEntity):
                 self.hass, self._weather_entity, sensor_state_listener
             )
         )
+
+    def diagnostics(self) -> dict[str, Any]:
+        """Return how the sensor's value was worked out, for diagnostics."""
+        since = self._weather_unavailable_since
+        return {
+            "entity_id": self.entity_id,
+            "value": self.native_value,
+            "weather": self._cond_desc,
+            "divisor": self._sk,
+            "weather_source_reports": self._entity_status.value,
+            "weather_unavailable_since": since.isoformat() if since else None,
+        }
 
     async def async_will_remove_from_hass(self) -> None:
         """Delete the sensor's repair, if any: it's raised again when needed."""
@@ -365,11 +382,14 @@ class SolarIlluminanceSensor(SensorEntity):
             float(condition)
         except ValueError:
             self._entity_status = EntityStatus.OK_CONDITION
-            kind = "weather conditions"
         else:
             self._entity_status = EntityStatus.OK_CLOUD
-            kind = "cloud coverage"
-        _LOGGER.info("%s: %s reports %s", self.entity_id, self._weather_entity, kind)
+        _LOGGER.info(
+            "%s: %s reports %s",
+            self.entity_id,
+            self._weather_entity,
+            self._entity_status.value,
+        )
 
     def _get_divisor_from_cloud_coverage(self, condition: str) -> None:
         """Get divisor from a cloud coverage percentage."""

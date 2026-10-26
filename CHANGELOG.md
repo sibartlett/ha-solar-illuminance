@@ -43,6 +43,12 @@ its entity ID changed, Home Assistant now shows a repair. It also shows one if
 the source has had no weather data for an hour. Until then, as before, the
 sensor uses its illuminance divider instead of the weather.
 
+### Diagnostics
+
+Each sensor's diagnostics can be downloaded, to include when reporting a
+problem. They have its options, how its value was worked out, and the
+weather data source's state.
+
 ### Each sensor has a device
 
 Each sensor now belongs to a device of its own, named after the sensor.

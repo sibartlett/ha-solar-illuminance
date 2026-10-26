@@ -1,0 +1,68 @@
+# serializer version: 1
+# name: test_diagnostics
+  dict({
+    'options': dict({
+      'entity_id': 'weather.home',
+      'mode': 'normal',
+      'scan_interval': 5,
+    }),
+    'sensor': dict({
+      'divisor': 6.309573444801933,
+      'entity_id': 'sensor.solar_illuminance',
+      'value': 19389,
+      'weather': '(cloudy, 80%)',
+      'weather_source_reports': 'weather conditions',
+      'weather_unavailable_since': None,
+    }),
+    'weather_source': dict({
+      'attributes': dict({
+        'attribution': 'Met.no',
+        'cloud_coverage': 80,
+      }),
+      'last_changed': '2026-06-21T19:50:00+00:00',
+      'last_updated': '2026-06-21T19:50:00+00:00',
+      'state': 'cloudy',
+    }),
+  })
+# ---
+# name: test_diagnostics_no_weather_entity
+  dict({
+    'options': dict({
+      'mode': 'normal',
+      'scan_interval': 5,
+    }),
+    'sensor': dict({
+      'divisor': 1,
+      'entity_id': 'sensor.solar_illuminance',
+      'value': 122334,
+      'weather': 'without weather data',
+      'weather_source_reports': 'not seen yet',
+      'weather_unavailable_since': None,
+    }),
+    'weather_source': None,
+  })
+# ---
+# name: test_diagnostics_unavailable
+  dict({
+    'options': dict({
+      'entity_id': 'weather.home',
+      'mode': 'normal',
+      'scan_interval': 5,
+    }),
+    'sensor': dict({
+      'divisor': 10,
+      'entity_id': 'sensor.solar_illuminance',
+      'value': 12233,
+      'weather': 'without weather data',
+      'weather_source_reports': 'not seen yet',
+      'weather_unavailable_since': '2026-06-21T19:50:00+00:00',
+    }),
+    'weather_source': dict({
+      'attributes': dict({
+      }),
+      'last_changed': '2026-06-21T19:50:00+00:00',
+      'last_updated': '2026-06-21T19:50:00+00:00',
+      'state': 'unavailable',
+    }),
+  })
+# ---
