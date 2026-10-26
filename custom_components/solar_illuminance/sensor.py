@@ -3,10 +3,8 @@
 A Sensor platform that estimates outdoor illuminance from current weather conditions.
 """
 
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from enum import Enum, auto
-from functools import cached_property  # pylint: disable=hass-deprecated-import
 import logging
 from math import asin, cos, exp, radians, sin
 from typing import Any, cast
@@ -121,14 +119,22 @@ _40_MIN = timedelta(minutes=40)
 Num = float | int
 
 
-@dataclass
-class SolarIlluminanceSensorEntityDescription(SensorEntityDescription):  # type: ignore[misc]
-    """Solar Illuminance sensor entity description."""
-
-    weather_entity: str | None = None
-    mode: Mode | None = None
-    fallback: float | None = None
-    scan_interval: timedelta | None = None
+ILLUMINANCE = SensorEntityDescription(
+    key=DOMAIN,
+    device_class=SensorDeviceClass.ILLUMINANCE,
+    name=None,
+    native_unit_of_measurement=LIGHT_LUX,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=0,
+)
+IRRADIANCE = SensorEntityDescription(
+    key=DOMAIN,
+    device_class=SensorDeviceClass.IRRADIANCE,
+    name=None,
+    native_unit_of_measurement=UnitOfIrradiance.WATTS_PER_SQUARE_METER,
+    state_class=SensorStateClass.MEASUREMENT,
+    suggested_display_precision=2,
+)
 
 
 async def async_setup_entry(
@@ -137,36 +143,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    weather_entity = entry.options.get(CONF_ENTITY_ID)
-    mode = Mode.__getitem__(cast(str, entry.options[CONF_MODE]))
-    fallback = cast(
-        float,
-        entry.options.get(CONF_FALLBACK, DEFAULT_FALLBACK if weather_entity else 1),
-    )
-
-    if mode is Mode.irradiance:
-        device_class = SensorDeviceClass.IRRADIANCE
-        native_unit_of_measurement: str = UnitOfIrradiance.WATTS_PER_SQUARE_METER
-        suggested_display_precision = 2
-    else:
-        device_class = SensorDeviceClass.ILLUMINANCE
-        native_unit_of_measurement = LIGHT_LUX
-        suggested_display_precision = 0
-
-    entity_description = SolarIlluminanceSensorEntityDescription(
-        key=DOMAIN,
-        device_class=device_class,
-        name=None,
-        native_unit_of_measurement=native_unit_of_measurement,
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=suggested_display_precision,
-        weather_entity=weather_entity,
-        mode=mode,
-        fallback=fallback,
-        scan_interval=timedelta(minutes=entry.options[CONF_SCAN_INTERVAL]),
-    )
-
-    async_add_entities([SolarIlluminanceSensor(entry, entity_description)])
+    async_add_entities([SolarIlluminanceSensor(entry)])
 
 
 def _illuminance(elev: Num) -> float:
@@ -201,7 +178,6 @@ class EntityStatus(Enum):
 class SolarIlluminanceSensor(SensorEntity):
     """Solar Illuminance sensor."""
 
-    entity_description: SolarIlluminanceSensorEntityDescription
     _attr_has_entity_name = True
     _attr_should_poll = False
     _entity_status = EntityStatus.NOT_SEEN
@@ -212,15 +188,20 @@ class SolarIlluminanceSensor(SensorEntity):
     _weather_unavailable_since: datetime | None = None
     _sun_data: tuple[date, tuple[datetime, datetime, datetime, datetime]] | None = None
 
-    def __init__(
-        self,
-        entry: ConfigEntry,
-        entity_description: SolarIlluminanceSensorEntityDescription,
-    ) -> None:
-        """Initialize sensor."""
-        self.entity_description = entity_description
+    def __init__(self, entry: ConfigEntry) -> None:
+        """Initialize sensor from the config entry's options."""
+        options = entry.options
+        self._weather_entity: str | None = options.get(CONF_ENTITY_ID)
+        self._mode = Mode[options[CONF_MODE]]
+        self._fallback: float = options.get(
+            CONF_FALLBACK, DEFAULT_FALLBACK if self._weather_entity else 1
+        )
+        self._scan_interval = timedelta(minutes=options[CONF_SCAN_INTERVAL])
         self._entry_id = entry.entry_id
         self._title = entry.title
+        self.entity_description = (
+            IRRADIANCE if self._mode is Mode.irradiance else ILLUMINANCE
+        )
         self._attr_unique_id = entry.entry_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
@@ -228,25 +209,10 @@ class SolarIlluminanceSensor(SensorEntity):
             entry_type=DeviceEntryType.SERVICE,
         )
 
-    @cached_property
-    def weather_entity(self) -> str | None:
-        """Input weather entity ID."""
-        return self.entity_description.weather_entity
-
-    @cached_property
-    def mode(self) -> Mode:
-        """Illuminance calculation mode."""
-        return cast(Mode, self.entity_description.mode)
-
-    @cached_property
-    def fallback(self) -> float:
-        """Fallback illuminance divisor."""
-        return cast(float, self.entity_description.fallback)
-
     async def async_added_to_hass(self) -> None:
         """Start updating, at the scan interval and when the weather changes."""
         self._get_divisor_from_weather_data(
-            self.hass.states.get(self.weather_entity) if self.weather_entity else None
+            self.hass.states.get(self._weather_entity) if self._weather_entity else None
         )
         await self.async_update()
 
@@ -259,11 +225,11 @@ class SolarIlluminanceSensor(SensorEntity):
             async_track_time_interval(
                 self.hass,
                 scheduled_update,
-                cast(timedelta, self.entity_description.scan_interval),
+                self._scan_interval,
             )
         )
 
-        if not self.weather_entity:
+        if not self._weather_entity:
             return
 
         @callback
@@ -284,7 +250,7 @@ class SolarIlluminanceSensor(SensorEntity):
         # When source entity changes check to see if we should update.
         self.async_on_remove(
             async_track_state_change_event(
-                self.hass, self.weather_entity, sensor_state_listener
+                self.hass, self._weather_entity, sensor_state_listener
             )
         )
 
@@ -303,7 +269,7 @@ class SolarIlluminanceSensor(SensorEntity):
             self._attr_native_value = 10
             return
 
-        if self.mode is Mode.irradiance:
+        if self._mode is Mode.irradiance:
             value /= LUX_PER_WPSM
             digits = 2
         else:
@@ -326,9 +292,9 @@ class SolarIlluminanceSensor(SensorEntity):
 
         # Use fallback unless divisor can be successfully determined from weather data.
         self._cond_desc = "without weather data"
-        self._sk = self.fallback
+        self._sk = self._fallback
 
-        if not self.weather_entity:
+        if not self._weather_entity:
             return
 
         condition = entity_state.state if entity_state else None
@@ -373,7 +339,7 @@ class SolarIlluminanceSensor(SensorEntity):
     def _update_weather_source_issue(self) -> None:
         """Raise a repair if the weather data source is missing or unavailable."""
         # While Home Assistant starts, the source may not have been set up yet.
-        if not self.weather_entity or not self.hass.is_running:
+        if not self._weather_entity or not self.hass.is_running:
             return
 
         if (since := self._weather_unavailable_since) is None:
@@ -382,10 +348,10 @@ class SolarIlluminanceSensor(SensorEntity):
 
         placeholders = {
             "name": self._title,
-            "entity_id": self.weather_entity,
+            "entity_id": self._weather_entity,
             "since": dt_util.as_local(since).strftime("%Y-%m-%d %H:%M"),
         }
-        if self.hass.states.get(self.weather_entity) is None:
+        if self.hass.states.get(self._weather_entity) is None:
             key: str | None = WEATHER_SOURCE_MISSING
         elif dt_util.utcnow() - since >= ISSUE_AFTER:
             key = WEATHER_SOURCE_UNAVAILABLE
@@ -403,7 +369,7 @@ class SolarIlluminanceSensor(SensorEntity):
         else:
             self._entity_status = EntityStatus.OK_CLOUD
             kind = "cloud coverage"
-        _LOGGER.info("%s: %s reports %s", self.entity_id, self.weather_entity, kind)
+        _LOGGER.info("%s: %s reports %s", self.entity_id, self._weather_entity, kind)
 
     def _get_divisor_from_cloud_coverage(self, condition: str) -> None:
         """Get divisor from a cloud coverage percentage."""
@@ -432,7 +398,7 @@ class SolarIlluminanceSensor(SensorEntity):
 
     def _calculate_illuminance(self, now: datetime) -> Num | None:
         """Calculate sunny illuminance, or None if it's nighttime in simple mode."""
-        if self.mode is not Mode.simple:
+        if self._mode is not Mode.simple:
             return _illuminance(cast(Num, self._astral_event("solar_elevation", now)))
 
         sun_factor = self._sun_factor(now)
