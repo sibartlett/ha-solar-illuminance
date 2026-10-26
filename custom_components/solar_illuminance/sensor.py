@@ -239,10 +239,7 @@ class SolarIlluminanceSensor(SensorEntity):
     ) -> None:
         """Initialize sensor."""
         self.entity_description = entity_description
-        if entity_description.unique_id:
-            self._attr_unique_id = entity_description.unique_id
-        else:
-            self._attr_unique_id = cast(str, entity_description.name)
+        self._attr_unique_id = entity_description.unique_id
 
     @cached_property
     def weather_entity(self) -> str | None:

@@ -20,3 +20,24 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy
+
+  tests:
+    name: tests (Home Assistant ${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: pinned
+          # The minimum version in hacs.json: Home Assistant 2026.7.0.
+          - name: minimum
+            homeassistant: pytest-homeassistant-custom-component==0.13.344
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - run: pip install -r requirements_test.txt
+      - if: matrix.homeassistant
+        run: pip install ${{ matrix.homeassistant }}
+      - run: pytest --cov=custom_components.solar_illuminance --cov-report=term-missing --cov-fail-under=100

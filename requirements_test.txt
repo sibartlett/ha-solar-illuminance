@@ -1,5 +1,6 @@
 # Pinned so a new Home Assistant release can't break CI unannounced;
-# Dependabot proposes updates.
+# Dependabot proposes updates. The Tests workflow also tests the minimum
+# Home Assistant version in hacs.json.
 pytest-homeassistant-custom-component==0.13.373
 ruff==0.17.1
 mypy==2.4.0
