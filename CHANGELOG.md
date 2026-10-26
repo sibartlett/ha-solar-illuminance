@@ -22,11 +22,19 @@ instead: see [Configuration](README.md#configuration).
 
 If the weather entity reports its cloud coverage, as Met.no, OpenWeatherMap
 and AccuWeather do, the sensor now uses it as well as the weather condition.
-It's more precise: the conditions map to only four levels of brightness, so
+It's more precise: the conditions map to only a few levels of brightness, so
 the value jumped between them. The condition still counts when it's darker,
 as in fog, rain or storms, so for any condition the integration knows, the
 value is never brighter than before. Other weather entities still use the
 condition alone.
+
+### Shows a value while Home Assistant starts
+
+A sensor with a weather data source used to stay unknown until Home Assistant
+had started, in case the source turned out to need special treatment. Weather
+conditions are now recognised whatever their source, so until the weather is
+available, the sensor shows the value without weather data, using the
+illuminance divider.
 
 ### Each sensor has a device
 

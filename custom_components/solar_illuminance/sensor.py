@@ -3,14 +3,12 @@
 A Sensor platform that estimates outdoor illuminance from current weather conditions.
 """
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from enum import Enum, IntEnum, auto
+from enum import Enum, auto
 from functools import cached_property  # pylint: disable=hass-deprecated-import
 import logging
 from math import asin, cos, exp, radians, sin
-import re
 from typing import Any, cast
 
 import astral.sun
@@ -40,7 +38,6 @@ from homeassistant.components.weather import (
 from homeassistant.components.weather.const import ATTR_WEATHER_CLOUD_COVERAGE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    ATTR_ATTRIBUTION,
     CONF_ENTITY_ID,
     CONF_MODE,
     CONF_SCAN_INTERVAL,
@@ -67,15 +64,19 @@ import homeassistant.util.dt as dt_util
 
 from .const import CONF_FALLBACK, DEFAULT_FALLBACK, DOMAIN, LUX_PER_WPSM
 
-# Standard sk to conditions mapping
+# Illuminance divisor for each weather condition. As well as the standard
+# conditions, it has those of weather sources that report others: ecobee's
+# snowy-heavy, tornado and hazy, and older AccuWeather integrations'
+# mostlycloudy. None of these clash with a standard condition.
 
-MAPPING = (
+MAPPING: tuple[tuple[Num, tuple[str, ...]], ...] = (
     (
         10,
         (
             ATTR_CONDITION_LIGHTNING,
             ATTR_CONDITION_LIGHTNING_RAINY,
             ATTR_CONDITION_POURING,
+            "snowy-heavy",
         ),
     ),
     (
@@ -88,25 +89,13 @@ MAPPING = (
             ATTR_CONDITION_SNOWY_RAINY,
             ATTR_CONDITION_HAIL,
             ATTR_CONDITION_EXCEPTIONAL,
+            "tornado",
         ),
     ),
-    (2, (ATTR_CONDITION_PARTLYCLOUDY, ATTR_CONDITION_WINDY_VARIANT)),
+    (3, ("mostlycloudy",)),
+    (2, (ATTR_CONDITION_PARTLYCLOUDY, ATTR_CONDITION_WINDY_VARIANT, "hazy")),
     (1, (ATTR_CONDITION_SUNNY, ATTR_CONDITION_CLEAR_NIGHT, ATTR_CONDITION_WINDY)),
 )
-
-# Weather sources that require special treatment
-
-AW_PATTERN = re.compile(r"(?i).*accuweather.*")
-AW_MAPPING = ((3, ("mostlycloudy",)),)
-
-ECOBEE_PATTERN = re.compile(r"(?i).*ecobee.*")
-ECOBEE_MAPPING = (
-    (10, ("snowy-heavy",)),
-    (5, ("tornado",)),
-    (2, ("hazy",)),
-)
-
-ADDITIONAL_MAPPINGS = ((AW_PATTERN, AW_MAPPING), (ECOBEE_PATTERN, ECOBEE_MAPPING))
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -207,13 +196,12 @@ class AbortUpdate(RuntimeError):
     """Abort update."""
 
 
-class EntityStatus(IntEnum):
+class EntityStatus(Enum):
     """Status of input entity."""
 
-    NOT_SEEN = 0
-    NO_ATTRIBUTION = 1
-    OK_CLOUD = 2
-    OK_CONDITION = 3
+    NOT_SEEN = auto()
+    OK_CLOUD = auto()
+    OK_CONDITION = auto()
 
 
 class SolarIlluminanceSensor(SensorEntity):
@@ -223,7 +211,6 @@ class SolarIlluminanceSensor(SensorEntity):
     _attr_has_entity_name = True
     _attr_should_poll = False
     _entity_status = EntityStatus.NOT_SEEN
-    _sk_mapping: Sequence[tuple[Num, Sequence[str]]] | None = None
     _sk: Num
     _cond_desc: str | None = None
     _warned = False
@@ -283,8 +270,7 @@ class SolarIlluminanceSensor(SensorEntity):
             new_state: State | None = event.data["new_state"]
             old_state: State | None = event.data["old_state"]
             if (
-                self._entity_status <= EntityStatus.NO_ATTRIBUTION
-                or not old_state
+                not old_state
                 or not new_state
                 or new_state.state != old_state.state
                 or new_state.attributes.get(ATTR_WEATHER_CLOUD_COVERAGE)
@@ -302,13 +288,6 @@ class SolarIlluminanceSensor(SensorEntity):
 
     async def async_update(self) -> None:
         """Update state."""
-        if (
-            self.weather_entity
-            and self._entity_status <= EntityStatus.NO_ATTRIBUTION
-            and not self.hass.is_running
-        ):
-            return
-
         try:
             value = self._calculate_illuminance(dt_util.utcnow().replace(microsecond=0))
         except AbortUpdate:
@@ -346,20 +325,17 @@ class SolarIlluminanceSensor(SensorEntity):
         if condition in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             condition = None
 
-        # If entity type, and potentially assocated mappings, have not been determined
-        # yet, try to determine them.
-        if (
-            self._entity_status <= EntityStatus.NO_ATTRIBUTION
-            and not self._detect_entity_type(entity_state, condition)
-        ):
-            return
-
         if not condition:
-            if not self._warned:
+            # While Home Assistant starts, the weather integration may not have
+            # been set up yet.
+            if not self._warned and self.hass.is_running:
                 _LOGGER.warning("%s: Weather data not available", self.entity_id)
                 self._warned = True
             return
         self._warned = False
+
+        if self._entity_status is EntityStatus.NOT_SEEN:
+            self._detect_entity_type(condition)
 
         if self._entity_status == EntityStatus.OK_CLOUD:
             self._get_divisor_from_cloud_coverage(condition)
@@ -381,54 +357,17 @@ class SolarIlluminanceSensor(SensorEntity):
             self._cond_desc = f"({condition}, {round(cloud)}%)"
             self._sk = cloud_sk
 
-    def _detect_entity_type(
-        self, entity_state: State | None, condition: str | None
-    ) -> bool:
-        """Determine whether the input entity reports cloud coverage or conditions.
-
-        Returns False if it can't be determined yet.
-        """
-        if condition:
-            assert entity_state
-            try:
-                float(condition)
-                self._entity_status = EntityStatus.OK_CLOUD
-                _LOGGER.info(
-                    "%s: Supported sensor %s: cloud coverage",
-                    self.entity_id,
-                    self.weather_entity,
-                )
-            except ValueError:
-                attribution = cast(
-                    str | None, entity_state.attributes.get(ATTR_ATTRIBUTION)
-                )
-                self._get_mappings(attribution, entity_state.domain)
-                if self._entity_status == EntityStatus.OK_CONDITION:
-                    _LOGGER.info(
-                        "%s: Supported sensor %s: %s is %s",
-                        self.entity_id,
-                        self.weather_entity,
-                        ATTR_ATTRIBUTION,
-                        attribution,
-                    )
-
-        if self._entity_status > EntityStatus.NO_ATTRIBUTION:
-            return True
-        if not self.hass.is_running:
-            return False
-
-        _LOGGER.debug(
-            "%s: Sensor %s: "
-            "not a number, no %s attribute, or doesn't exist"
-            "; will use standard condition mappings",
-            self.entity_id,
-            self.weather_entity,
-            ATTR_ATTRIBUTION,
-        )
-        self._warned = True
-        self._sk_mapping = MAPPING
-        self._entity_status = EntityStatus.OK_CONDITION
-        return True
+    def _detect_entity_type(self, condition: str) -> None:
+        """Determine whether the input entity reports cloud coverage or conditions."""
+        try:
+            float(condition)
+        except ValueError:
+            self._entity_status = EntityStatus.OK_CONDITION
+            kind = "weather conditions"
+        else:
+            self._entity_status = EntityStatus.OK_CLOUD
+            kind = "cloud coverage"
+        _LOGGER.info("%s: %s reports %s", self.entity_id, self.weather_entity, kind)
 
     def _get_divisor_from_cloud_coverage(self, condition: str) -> None:
         """Get divisor from a cloud coverage percentage."""
@@ -447,28 +386,13 @@ class SolarIlluminanceSensor(SensorEntity):
 
         Returns False if the condition isn't one of the expected ones.
         """
-        assert self._entity_status == EntityStatus.OK_CONDITION
-        assert self._sk_mapping
-
-        for sk, conditions in self._sk_mapping:
+        for sk, conditions in MAPPING:
             if condition in conditions:
                 self._cond_desc = f"({condition})"
                 self._sk = sk
                 return True
         _LOGGER.error("%s: Unexpected current condition: %s", self.entity_id, condition)
         return False
-
-    def _get_mappings(self, attribution: str | None, domain: str) -> None:
-        """Get sk -> conditions mappings."""
-        if not attribution:
-            self._entity_status = EntityStatus.NO_ATTRIBUTION
-            return
-
-        self._sk_mapping = MAPPING
-        for pat, mapping in ADDITIONAL_MAPPINGS:
-            if pat.fullmatch(attribution):
-                self._sk_mapping += mapping
-        self._entity_status = EntityStatus.OK_CONDITION
 
     def _calculate_illuminance(self, now: datetime) -> Num:
         """Calculate sunny illuminance."""

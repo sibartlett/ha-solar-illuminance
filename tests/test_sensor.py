@@ -115,11 +115,13 @@ async def test_simple_mode(
         ("rainy", "Met.no", 2000),
         ("lightning", "Met.no", 1000),
         ("pouring", "Met.no", 1000),
-        # AccuWeather and ecobee have conditions of their own.
+        # Some weather sources have conditions of their own, which are
+        # recognised whatever the source.
         ("mostlycloudy", "Data provided by AccuWeather", 3333),
-        ("snowy-heavy", "Data provided by ecobee", 1000),
-        ("tornado", "Data provided by ecobee", 2000),
-        ("hazy", "Data provided by ecobee", 5000),
+        ("mostlycloudy", None, 3333),
+        ("snowy-heavy", "Ecobee weather provided by KSAN", 1000),
+        ("tornado", None, 2000),
+        ("hazy", "Met.no", 5000),
         # Without an attribution, the standard conditions are used.
         ("cloudy", None, 2000),
     ],
@@ -157,7 +159,7 @@ async def test_weather_condition(
         ("cloudy", None, 2000),
         ("cloudy", "lots", 2000),
         # With an unexpected condition, the cloud coverage is used.
-        ("mostlycloudy", 50, 3162),
+        ("bogus", 50, 3162),
     ],
 )
 async def test_weather_cloud_coverage(
@@ -202,12 +204,12 @@ async def test_unexpected_condition(
     hass: HomeAssistant, setup_entry: SetupEntry, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test an unknown condition uses the fallback divisor."""
-    hass.states.async_set(WEATHER_ENTITY_ID, "mostlycloudy", {ATTR_ATTRIBUTION: "x"})
+    hass.states.async_set(WEATHER_ENTITY_ID, "bogus", {ATTR_ATTRIBUTION: "Met.no"})
     await setup_entry(mode="simple", entity_id=WEATHER_ENTITY_ID)
 
     # The default fallback with a weather entity is 10.
     assert _state(hass) == 1000
-    assert "Unexpected current condition: mostlycloudy" in caplog.text
+    assert "Unexpected current condition: bogus" in caplog.text
 
 
 @pytest.mark.usefixtures("noon")
@@ -316,22 +318,20 @@ async def test_no_weather_entity(
 
 
 @pytest.mark.usefixtures("noon")
-async def test_before_start(hass: HomeAssistant, setup_entry: SetupEntry) -> None:
-    """Test the sensor waits for the weather entity while Home Assistant starts."""
+async def test_before_start(
+    hass: HomeAssistant, setup_entry: SetupEntry, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test the sensor while the weather integration is still starting."""
     hass.set_state(CoreState.not_running)
-    hass.states.async_set(WEATHER_ENTITY_ID, "cloudy")
     await setup_entry(mode="simple", entity_id=WEATHER_ENTITY_ID)
 
-    # Without an attribution, the weather integration may not be loaded yet.
-    state = hass.states.get(ENTITY_ID)
-    assert state is not None
-    assert state.state == STATE_UNKNOWN
-
+    # The fallback is used, without a warning, until the weather is available.
+    assert _state(hass) == 1000
     hass.states.async_set(WEATHER_ENTITY_ID, STATE_UNAVAILABLE)
     await hass.async_block_till_done()
-    assert hass.states.get(ENTITY_ID).state == STATE_UNKNOWN
+    assert _state(hass) == 1000
+    assert "Weather data not available" not in caplog.text
 
-    await hass.async_start()
     hass.states.async_set(WEATHER_ENTITY_ID, "cloudy")
     await hass.async_block_till_done()
     assert _state(hass) == 2000
