@@ -9,6 +9,12 @@ In either case, the value can be further adjusted based on current weather condi
 
 Solar Illuminance is a fork of [Illuminance](https://github.com/pnbruckner/ha-illuminance) by [Phil Bruckner](https://github.com/pnbruckner), renamed so the two can be installed side by side.
 
+## Use cases
+
+- Turn lights on when it gets dark outside, and off when it's bright, without an outdoor light sensor. Unlike sunset and sunrise, the value is lower on a dark, stormy day.
+- Close blinds or awnings when the sun is strong, using the irradiance mode.
+- Compare it with an indoor light sensor, to tell whether a room is dark because it's dark outside.
+
 
 ## Modes of operation
 Three modes are available: normal, irradiance & simple.
@@ -95,6 +101,63 @@ Weather data source | Optional entity that indicates current weather conditions 
 Illuminance divider when no weather data | Divisor to use when weather data is not available. Must be in the range of 1 (clear) through 10 (dark). Default is 10 if a weather data source is selected, or 1 if not.
 
 YAML configuration is not supported.
+
+## How the value updates
+
+The sensor recalculates its value every update period (5 minutes by default), and straight away whenever its weather data source changes condition or cloud coverage.
+It needs no internet connection of its own: the sun's position is calculated from Home Assistant's home location, and the weather comes from the weather data source, which updates as often as its own integration does.
+
+## Examples
+
+Turn on the porch light when it's been darker than 1,000 lx for 5 minutes, and off when it's been brighter than 2,000 lx for 5 minutes. The gap between the two stops the light switching on and off when the value hovers around one level.
+
+```yaml
+automation:
+  - alias: Porch light on when it's dark
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.solar_illuminance
+        below: 1000
+        for:
+          minutes: 5
+    actions:
+      - action: light.turn_on
+        target:
+          entity_id: light.porch
+  - alias: Porch light off when it's bright
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.solar_illuminance
+        above: 2000
+        for:
+          minutes: 5
+    actions:
+      - action: light.turn_off
+        target:
+          entity_id: light.porch
+```
+
+The same automations can be made in the UI, with a **Numeric state** trigger.
+
+## Known limitations
+
+- The value is an estimate of the light outdoors in the open, not a measurement. It doesn't take into account shade, the direction a window faces, or the moon.
+- All sensors use Home Assistant's home location.
+- Weather conditions only give a few levels of brightness. A weather data source that also reports cloud coverage gives a smoother value.
+- The value can only be as current as the weather data source, which may update only every hour or so.
+- In simple mode, the value is never more than 10,000 lx, and is 10 lx at night.
+
+## Troubleshooting
+
+- **The value doesn't change with the weather.** Check the weather data source's state in **Developer tools** -> **States**. If it's unavailable, the sensor uses the illuminance divider instead. If it has had no weather data for an hour, or no longer exists, Home Assistant shows a repair in **Settings** -> **Repairs**.
+- **The log says "Unexpected current condition".** The weather data source reported a condition the integration doesn't know. The sensor uses the source's cloud coverage if it has one, or the illuminance divider if not. Please [open an issue](https://github.com/sibartlett/ha-solar-illuminance/issues) with the condition and the weather integration.
+- **The value seems wrong.** Download the sensor's diagnostics from its entry's menu, in **Settings** -> **Devices & services** -> **Solar Illuminance**. They show the weather used and the divisor. To see each update in the log, enable debug logging from the menu at the top of that page. Include both when reporting a problem.
+
+## Removal
+
+1. Go to **Settings** -> **Devices & services** -> **Solar Illuminance**, and delete each entry from its menu.
+1. If you installed it with HACS, remove it in HACS. Otherwise, delete `<config>/custom_components/solar_illuminance`.
+1. Restart Home Assistant.
 
 ## Changelog
 

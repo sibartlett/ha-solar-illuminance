@@ -25,7 +25,7 @@ rules:
     comment: The integration has no conditions.
   docs-high-level-description: done
   docs-installation-instructions: done
-  docs-removal-instructions: todo
+  docs-removal-instructions: done
   docs-triggers:
     status: exempt
     comment: The integration has no triggers.
@@ -80,15 +80,15 @@ rules:
   discovery-update-info:
     status: exempt
     comment: There's nothing to discover.
-  docs-data-update: todo
-  docs-examples: todo
-  docs-known-limitations: todo
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
   docs-supported-devices:
     status: done
     comment: The supported weather data sources are listed.
   docs-supported-functions: done
-  docs-troubleshooting: todo
-  docs-use-cases: todo
+  docs-troubleshooting: done
+  docs-use-cases: done
   dynamic-devices:
     status: exempt
     comment: Each entry has one device, for its sensor.
