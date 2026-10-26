@@ -1,6 +1,13 @@
 # <img src="custom_components/solar_illuminance/brand/icon.png" alt="Solar Illuminance Sensor" width="50" height="50"/> Solar Illuminance Sensor
+
+[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
+[![Release](https://img.shields.io/github/v/release/sibartlett/ha-solar-illuminance)](https://github.com/sibartlett/ha-solar-illuminance/releases)
+[![Tests](https://github.com/sibartlett/ha-solar-illuminance/actions/workflows/tests.yml/badge.svg)](https://github.com/sibartlett/ha-solar-illuminance/actions/workflows/tests.yml)
+
 Creates a `sensor` entity that estimates outdoor illuminance based on either sun elevation or time of day.
 In either case, the value can be further adjusted based on current weather conditions or cloud coverage obtained from another, existing entity.
+
+Solar Illuminance is a fork of [Illuminance](https://github.com/pnbruckner/ha-illuminance) by [Phil Bruckner](https://github.com/pnbruckner), renamed so the two can be installed side by side.
 
 
 ## Modes of operation
@@ -44,8 +51,6 @@ Or you can manually install the software.
 <details>
 <summary>With HACS</summary>
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
-
 1. Add this repo as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/):
    It should then appear as a new integration. Click on it. If necessary, search for "solar illuminance".
    ```text
@@ -62,11 +67,9 @@ Or you can manually install the software.
 <details>
 <summary>Manual Installation</summary>
 
-Place a copy of the files from [`custom_components/solar_illuminance`](custom_components/solar_illuminance)
-in `<config>/custom_components/solar_illuminance`,
+Download `solar_illuminance.zip` from the [latest release](https://github.com/sibartlett/ha-solar-illuminance/releases/latest),
+and unzip it into `<config>/custom_components/solar_illuminance`,
 where `<config>` is your Home Assistant configuration directory.
-
->__NOTE__: When downloading, make sure to use the `Raw` button from each file's page.
 
 </details>
 
@@ -92,5 +95,6 @@ Illuminance divider when no weather data | Divisor to use when weather data is n
 
 YAML configuration is not supported.
 
-## Releases Before 2.1.0
-See https://github.com/pnbruckner/homeassistant-config/blob/master/docs/illuminance.md.
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
