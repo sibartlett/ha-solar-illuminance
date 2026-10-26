@@ -37,6 +37,7 @@ from homeassistant.components.weather import (
     ATTR_CONDITION_WINDY,
     ATTR_CONDITION_WINDY_VARIANT,
 )
+from homeassistant.components.weather.const import ATTR_WEATHER_CLOUD_COVERAGE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_ATTRIBUTION,
@@ -194,6 +195,14 @@ def _illumiance(elev: Num) -> float:
     return 133775 * m
 
 
+def _cloud_coverage(value: Any) -> float | None:
+    """Return a cloud coverage percentage, limited to 0-100, or None if invalid."""
+    try:
+        return min(max(0, float(value)), 100)
+    except TypeError, ValueError:
+        return None
+
+
 class AbortUpdate(RuntimeError):
     """Abort update."""
 
@@ -278,6 +287,8 @@ class SolarIlluminanceSensor(SensorEntity):
                 or not old_state
                 or not new_state
                 or new_state.state != old_state.state
+                or new_state.attributes.get(ATTR_WEATHER_CLOUD_COVERAGE)
+                != old_state.attributes.get(ATTR_WEATHER_CLOUD_COVERAGE)
             ):
                 self._get_divisor_from_weather_data(new_state)
                 self.async_schedule_update_ha_state(True)
@@ -352,8 +363,23 @@ class SolarIlluminanceSensor(SensorEntity):
 
         if self._entity_status == EntityStatus.OK_CLOUD:
             self._get_divisor_from_cloud_coverage(condition)
-        else:
-            self._get_divisor_from_condition(condition)
+            return
+
+        matched = self._get_divisor_from_condition(condition)
+
+        # A weather entity's cloud coverage is more precise than its condition,
+        # but the condition also reflects fog, rain and storms: use whichever is
+        # darker.
+        assert entity_state
+        cloud = _cloud_coverage(
+            entity_state.attributes.get(ATTR_WEATHER_CLOUD_COVERAGE)
+        )
+        if cloud is None:
+            return
+        cloud_sk = 10 ** (cloud / 100)
+        if not matched or cloud_sk > self._sk:
+            self._cond_desc = f"({condition}, {round(cloud)}%)"
+            self._sk = cloud_sk
 
     def _detect_entity_type(
         self, entity_state: State | None, condition: str | None
@@ -406,20 +432,21 @@ class SolarIlluminanceSensor(SensorEntity):
 
     def _get_divisor_from_cloud_coverage(self, condition: str) -> None:
         """Get divisor from a cloud coverage percentage."""
-        try:
-            cloud = min(max(0, float(condition)), 100)
-        except ValueError:
+        if (cloud := _cloud_coverage(condition)) is None:
             _LOGGER.error(
                 "%s: Cloud coverage sensor state is not a number: %s",
                 self.entity_id,
                 condition,
             )
-        else:
-            self._cond_desc = f"({round(cloud)}%)"
-            self._sk = 10 ** (cloud / 100)
+            return
+        self._cond_desc = f"({round(cloud)}%)"
+        self._sk = 10 ** (cloud / 100)
 
-    def _get_divisor_from_condition(self, condition: str) -> None:
-        """Get divisor from a weather condition."""
+    def _get_divisor_from_condition(self, condition: str) -> bool:
+        """Get divisor from a weather condition.
+
+        Returns False if the condition isn't one of the expected ones.
+        """
         assert self._entity_status == EntityStatus.OK_CONDITION
         assert self._sk_mapping
 
@@ -427,8 +454,9 @@ class SolarIlluminanceSensor(SensorEntity):
             if condition in conditions:
                 self._cond_desc = f"({condition})"
                 self._sk = sk
-                return
+                return True
         _LOGGER.error("%s: Unexpected current condition: %s", self.entity_id, condition)
+        return False
 
     def _get_mappings(self, attribution: str | None, domain: str) -> None:
         """Get sk -> conditions mappings."""

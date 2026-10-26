@@ -31,16 +31,17 @@ At night the value is 10 lx. From a little before sunrise to a little after the 
 </p>
 
 ## Supported weather sources
-Any weather entity that uses the [standard list of conditions](https://www.home-assistant.io/integrations/weather/#condition-mapping), or that provides a cloud coverage percentage, should work with this integration.
+Any weather entity that uses the [standard list of conditions](https://www.home-assistant.io/integrations/weather/#condition-mapping), or any sensor that provides a cloud coverage percentage, should work with this integration.
+If a weather entity also reports its cloud coverage, whichever of the two indicates it's darker is used: the cloud coverage is more precise, but the condition also reflects fog, rain and storms.
 The following sources of weather data are known to be supported:
 
 Integration | Notes
 -|-
-[AccuWeather](https://www.home-assistant.io/integrations/accuweather/) | `weather`
+[AccuWeather](https://www.home-assistant.io/integrations/accuweather/) | `weather`, with cloud coverage
 [Buienradar](https://www.home-assistant.io/integrations/buienradar/) | `weather`
-[ecobee](https://www.home-assistant.io/integrations/ecobee/) |
-[Meteorologisk institutt (Met.no)](https://www.home-assistant.io/integrations/met/) | `weather`
-[OpenWeatherMap](https://www.home-assistant.io/integrations/openweathermap/) | `weather`; cloud_coverage & condition `sensor`
+[ecobee](https://www.home-assistant.io/integrations/ecobee/) | `weather`
+[Meteorologisk institutt (Met.no)](https://www.home-assistant.io/integrations/met/) | `weather`, with cloud coverage
+[OpenWeatherMap](https://www.home-assistant.io/integrations/openweathermap/) | `weather`, with cloud coverage; cloud_coverage & condition `sensor`
 
 ## Installation
 

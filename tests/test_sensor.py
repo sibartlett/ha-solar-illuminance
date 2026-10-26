@@ -3,6 +3,7 @@
 from datetime import timedelta
 
 from freezegun.api import FrozenDateTimeFactory
+from homeassistant.components.weather.const import ATTR_WEATHER_CLOUD_COVERAGE
 from homeassistant.const import (
     ATTR_ATTRIBUTION,
     ATTR_UNIT_OF_MEASUREMENT,
@@ -136,6 +137,64 @@ async def test_weather_condition(
     await setup_entry(mode="simple", entity_id=WEATHER_ENTITY_ID)
 
     assert _state(hass) == illuminance
+
+
+@pytest.mark.usefixtures("noon")
+@pytest.mark.parametrize(
+    ("condition", "cloud_coverage", "illuminance"),
+    [
+        # Whichever is darker is used: here, the cloud coverage.
+        ("sunny", 0, 10000),
+        ("sunny", 80, 1585),
+        ("partlycloudy", 50, 3162),
+        ("cloudy", 100, 1000),
+        ("cloudy", 150, 1000),
+        # Here, the condition, which reflects fog and rain.
+        ("cloudy", 50, 2000),
+        ("fog", 10, 2000),
+        ("pouring", 20, 1000),
+        # Without a valid cloud coverage, the condition is used.
+        ("cloudy", None, 2000),
+        ("cloudy", "lots", 2000),
+        # With an unexpected condition, the cloud coverage is used.
+        ("mostlycloudy", 50, 3162),
+    ],
+)
+async def test_weather_cloud_coverage(
+    hass: HomeAssistant,
+    setup_entry: SetupEntry,
+    condition: str,
+    cloud_coverage: float | str | None,
+    illuminance: float,
+) -> None:
+    """Test the darker of a weather entity's cloud coverage and condition is used."""
+    hass.states.async_set(
+        WEATHER_ENTITY_ID,
+        condition,
+        {ATTR_ATTRIBUTION: "Met.no", ATTR_WEATHER_CLOUD_COVERAGE: cloud_coverage},
+    )
+    await setup_entry(mode="simple", entity_id=WEATHER_ENTITY_ID)
+
+    assert _state(hass) == illuminance
+
+
+@pytest.mark.usefixtures("noon")
+async def test_weather_cloud_coverage_changes(
+    hass: HomeAssistant, setup_entry: SetupEntry
+) -> None:
+    """Test the sensor updates when only the cloud coverage changes."""
+    attributes = {ATTR_ATTRIBUTION: "Met.no"}
+    hass.states.async_set(
+        WEATHER_ENTITY_ID, "sunny", attributes | {ATTR_WEATHER_CLOUD_COVERAGE: 0}
+    )
+    await setup_entry(mode="simple", entity_id=WEATHER_ENTITY_ID)
+    assert _state(hass) == 10000
+
+    hass.states.async_set(
+        WEATHER_ENTITY_ID, "sunny", attributes | {ATTR_WEATHER_CLOUD_COVERAGE: 100}
+    )
+    await hass.async_block_till_done()
+    assert _state(hass) == 1000
 
 
 @pytest.mark.usefixtures("noon")

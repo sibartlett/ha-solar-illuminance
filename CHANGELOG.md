@@ -18,6 +18,16 @@ removed. If your configuration still has a `solar_illuminance:` section, Home
 Assistant shows a repair asking you to remove it. Add the sensors in the UI
 instead: see [Configuration](README.md#configuration).
 
+### Uses the weather's cloud coverage
+
+If the weather entity reports its cloud coverage, as Met.no, OpenWeatherMap
+and AccuWeather do, the sensor now uses it as well as the weather condition.
+It's more precise: the conditions map to only four levels of brightness, so
+the value jumped between them. The condition still counts when it's darker,
+as in fog, rain or storms, so for any condition the integration knows, the
+value is never brighter than before. Other weather entities still use the
+condition alone.
+
 ### Each sensor has a device
 
 Each sensor now belongs to a device of its own, named after the sensor.
