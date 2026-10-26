@@ -16,7 +16,7 @@ from homeassistant.core import CoreState, HomeAssistant
 import pytest
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from custom_components.solar_illuminance.sensor import _illumiance
+from custom_components.solar_illuminance.sensor import _illuminance
 
 from .conftest import (
     ENTITY_ID,
@@ -44,7 +44,7 @@ def _state(hass: HomeAssistant) -> float:
 )
 def test_illuminance(elevation: float, illuminance: float) -> None:
     """Test the US Naval Observatory illuminance algorithm."""
-    assert _illumiance(elevation) == pytest.approx(illuminance, abs=0.5)
+    assert _illuminance(elevation) == pytest.approx(illuminance, abs=0.5)
 
 
 @pytest.mark.usefixtures("noon")

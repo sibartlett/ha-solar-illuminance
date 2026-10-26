@@ -128,7 +128,6 @@ class SolarIlluminanceSensorEntityDescription(SensorEntityDescription):  # type:
     weather_entity: str | None = None
     mode: Mode | None = None
     fallback: float | None = None
-    unique_id: str | None = None
     scan_interval: timedelta | None = None
 
 
@@ -164,14 +163,13 @@ async def async_setup_entry(
         weather_entity=weather_entity,
         mode=mode,
         fallback=fallback,
-        unique_id=entry.unique_id or entry.entry_id,
         scan_interval=timedelta(minutes=entry.options[CONF_SCAN_INTERVAL]),
     )
 
     async_add_entities([SolarIlluminanceSensor(entry, entity_description)])
 
 
-def _illumiance(elev: Num) -> float:
+def _illuminance(elev: Num) -> float:
     """Calculate illuminance from sun at given elevation."""
     elev_rad = radians(elev)
     u = sin(elev_rad)
@@ -190,10 +188,6 @@ def _cloud_coverage(value: Any) -> float | None:
         return min(max(0, float(value)), 100)
     except TypeError, ValueError:
         return None
-
-
-class AbortUpdate(RuntimeError):
-    """Abort update."""
 
 
 class EntityStatus(Enum):
@@ -227,7 +221,7 @@ class SolarIlluminanceSensor(SensorEntity):
         self.entity_description = entity_description
         self._entry_id = entry.entry_id
         self._title = entry.title
-        self._attr_unique_id = entity_description.unique_id
+        self._attr_unique_id = entry.entry_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,
@@ -302,9 +296,11 @@ class SolarIlluminanceSensor(SensorEntity):
         """Update state."""
         self._update_weather_source_issue()
 
-        try:
-            value = self._calculate_illuminance(dt_util.utcnow().replace(microsecond=0))
-        except AbortUpdate:
+        now = dt_util.utcnow().replace(microsecond=0)
+        if (value := self._calculate_illuminance(now)) is None:
+            # It's nighttime in simple mode: for historic reasons, the value is 10.
+            _LOGGER.debug("%s: Updating -> 10", self.entity_id)
+            self._attr_native_value = 10
             return
 
         if self.mode is Mode.irradiance:
@@ -434,21 +430,15 @@ class SolarIlluminanceSensor(SensorEntity):
         _LOGGER.error("%s: Unexpected current condition: %s", self.entity_id, condition)
         return False
 
-    def _calculate_illuminance(self, now: datetime) -> Num:
-        """Calculate sunny illuminance."""
+    def _calculate_illuminance(self, now: datetime) -> Num | None:
+        """Calculate sunny illuminance, or None if it's nighttime in simple mode."""
         if self.mode is not Mode.simple:
-            return _illumiance(cast(Num, self._astral_event("solar_elevation", now)))
+            return _illuminance(cast(Num, self._astral_event("solar_elevation", now)))
 
         sun_factor = self._sun_factor(now)
 
-        # No point in getting division factor because zero divided by anything is
-        # still zero. I.e., it's nighttime.
         if sun_factor == 0:
-            # For historic reasons, return a value of 10.
-            _LOGGER.debug("%s: Updating -> 10", self.entity_id)
-            self._attr_native_value = 10
-            raise AbortUpdate
-
+            return None
         return 10000 * sun_factor
 
     def _astral_event(self, event: str, date_or_dt: date | datetime) -> Any:
