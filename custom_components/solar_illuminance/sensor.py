@@ -62,7 +62,12 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.sun import get_astral_observer
 import homeassistant.util.dt as dt_util
 
-from .const import CONF_FALLBACK, DEFAULT_FALLBACK, DOMAIN, LUX_PER_WPSM
+from .const import CONF_FALLBACK, DEFAULT_FALLBACK, DOMAIN, ISSUE_AFTER, LUX_PER_WPSM
+from .issues import (
+    WEATHER_SOURCE_MISSING,
+    WEATHER_SOURCE_UNAVAILABLE,
+    async_set_weather_source_issue,
+)
 
 # Illuminance divisor for each weather condition. As well as the standard
 # conditions, it has those of weather sources that report others: ecobee's
@@ -163,12 +168,7 @@ async def async_setup_entry(
         scan_interval=timedelta(minutes=entry.options[CONF_SCAN_INTERVAL]),
     )
 
-    device_info = DeviceInfo(
-        identifiers={(DOMAIN, entry.entry_id)},
-        name=entry.title,
-        entry_type=DeviceEntryType.SERVICE,
-    )
-    async_add_entities([SolarIlluminanceSensor(entity_description, device_info)])
+    async_add_entities([SolarIlluminanceSensor(entry, entity_description)])
 
 
 def _illumiance(elev: Num) -> float:
@@ -214,17 +214,25 @@ class SolarIlluminanceSensor(SensorEntity):
     _sk: Num
     _cond_desc: str | None = None
     _warned = False
+    # When the weather data source stopped having weather data, if it has none.
+    _weather_unavailable_since: datetime | None = None
     _sun_data: tuple[date, tuple[datetime, datetime, datetime, datetime]] | None = None
 
     def __init__(
         self,
+        entry: ConfigEntry,
         entity_description: SolarIlluminanceSensorEntityDescription,
-        device_info: DeviceInfo,
     ) -> None:
         """Initialize sensor."""
         self.entity_description = entity_description
+        self._entry_id = entry.entry_id
+        self._title = entry.title
         self._attr_unique_id = entity_description.unique_id
-        self._attr_device_info = device_info
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=entry.title,
+            entry_type=DeviceEntryType.SERVICE,
+        )
 
     @cached_property
     def weather_entity(self) -> str | None:
@@ -286,8 +294,14 @@ class SolarIlluminanceSensor(SensorEntity):
             )
         )
 
+    async def async_will_remove_from_hass(self) -> None:
+        """Delete the sensor's repair, if any: it's raised again when needed."""
+        async_set_weather_source_issue(self.hass, self._entry_id, None)
+
     async def async_update(self) -> None:
         """Update state."""
+        self._update_weather_source_issue()
+
         try:
             value = self._calculate_illuminance(dt_util.utcnow().replace(microsecond=0))
         except AbortUpdate:
@@ -326,6 +340,8 @@ class SolarIlluminanceSensor(SensorEntity):
             condition = None
 
         if not condition:
+            if self._weather_unavailable_since is None:
+                self._weather_unavailable_since = dt_util.utcnow()
             # While Home Assistant starts, the weather integration may not have
             # been set up yet.
             if not self._warned and self.hass.is_running:
@@ -333,6 +349,7 @@ class SolarIlluminanceSensor(SensorEntity):
                 self._warned = True
             return
         self._warned = False
+        self._weather_unavailable_since = None
 
         if self._entity_status is EntityStatus.NOT_SEEN:
             self._detect_entity_type(condition)
@@ -356,6 +373,29 @@ class SolarIlluminanceSensor(SensorEntity):
         if not matched or cloud_sk > self._sk:
             self._cond_desc = f"({condition}, {round(cloud)}%)"
             self._sk = cloud_sk
+
+    def _update_weather_source_issue(self) -> None:
+        """Raise a repair if the weather data source is missing or unavailable."""
+        # While Home Assistant starts, the source may not have been set up yet.
+        if not self.weather_entity or not self.hass.is_running:
+            return
+
+        if (since := self._weather_unavailable_since) is None:
+            async_set_weather_source_issue(self.hass, self._entry_id, None)
+            return
+
+        placeholders = {
+            "name": self._title,
+            "entity_id": self.weather_entity,
+            "since": dt_util.as_local(since).strftime("%Y-%m-%d %H:%M"),
+        }
+        if self.hass.states.get(self.weather_entity) is None:
+            key: str | None = WEATHER_SOURCE_MISSING
+        elif dt_util.utcnow() - since >= ISSUE_AFTER:
+            key = WEATHER_SOURCE_UNAVAILABLE
+        else:
+            key = None
+        async_set_weather_source_issue(self.hass, self._entry_id, key, placeholders)
 
     def _detect_entity_type(self, condition: str) -> None:
         """Determine whether the input entity reports cloud coverage or conditions."""

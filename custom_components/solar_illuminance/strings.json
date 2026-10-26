@@ -47,5 +47,15 @@
         "irradiance": "Irradiance"
       }
     }
+  },
+  "issues": {
+    "weather_source_missing": {
+      "title": "{name}'s weather data source is missing",
+      "description": "**{name}** uses `{entity_id}` as its weather data source, but there's no such entity: it may have been deleted, or its entity ID changed.\n\nUntil then, the sensor uses its illuminance divider instead of the weather. Choose another source, or none, with **Configure** on the Solar Illuminance integration's page."
+    },
+    "weather_source_unavailable": {
+      "title": "{name} has no weather data",
+      "description": "**{name}** hasn't had weather data from `{entity_id}` since {since}, so it's using its illuminance divider instead of the weather.\n\nCheck that the integration providing `{entity_id}` is working, or choose another source with **Configure** on the Solar Illuminance integration's page. This repair goes away once there's weather data again."
+    }
   }
 }
