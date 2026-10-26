@@ -1,11 +1,8 @@
 """Solar Illuminance Sensor."""
-from __future__ import annotations
 
 import asyncio
 from collections.abc import Coroutine
 from typing import Any
-
-import voluptuous as vol
 
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
@@ -20,6 +17,7 @@ from homeassistant.helpers.reload import async_integration_yaml_config
 from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.sun import get_astral_observer
 from homeassistant.helpers.typing import ConfigType
+import voluptuous as vol
 
 from .const import DOMAIN
 from .sensor import LOC_ELEV, SOLAR_ILLUMINANCE_SCHEMA
@@ -39,6 +37,38 @@ CONFIG_SCHEMA = vol.Schema(
 PLATFORMS = [Platform.SENSOR]
 
 
+async def _async_process_config(
+    hass: HomeAssistant, config: ConfigType | None, run_immediately: bool = True
+) -> None:
+    """Process illuminance config."""
+    if not config or not (configs := config.get(DOMAIN)):
+        configs = []
+    unique_ids = [config[CONF_UNIQUE_ID] for config in configs]
+    tasks: list[Coroutine[Any, Any, Any]] = []
+
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.source != SOURCE_IMPORT:
+            continue
+        if entry.unique_id not in unique_ids:
+            tasks.append(hass.config_entries.async_remove(entry.entry_id))
+
+    for conf in configs:
+        tasks.append(  # noqa: PERF401
+            hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": SOURCE_IMPORT}, data=conf.copy()
+            )
+        )
+
+    if not tasks:
+        return
+
+    if run_immediately:
+        await asyncio.gather(*tasks)
+    else:
+        for task in tasks:
+            hass.async_create_task(task)
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up composite integration."""
 
@@ -48,43 +78,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             return
         hass.data[LOC_ELEV] = get_astral_observer(hass)
 
-    async def process_config(
-        config: ConfigType | None, run_immediately: bool = True
-    ) -> None:
-        """Process illuminance config."""
-        if not config or not (configs := config.get(DOMAIN)):
-            configs = []
-        unique_ids = [config[CONF_UNIQUE_ID] for config in configs]
-        tasks: list[Coroutine[Any, Any, Any]] = []
-
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            if entry.source != SOURCE_IMPORT:
-                continue
-            if entry.unique_id not in unique_ids:
-                tasks.append(hass.config_entries.async_remove(entry.entry_id))
-
-        for conf in configs:
-            tasks.append(  # noqa: PERF401
-                hass.config_entries.flow.async_init(
-                    DOMAIN, context={"source": SOURCE_IMPORT}, data=conf.copy()
-                )
-            )
-
-        if not tasks:
-            return
-
-        if run_immediately:
-            await asyncio.gather(*tasks)
-        else:
-            for task in tasks:
-                hass.async_create_task(task)
-
     async def reload_config(call: ServiceCall | None = None) -> None:
         """Reload configuration."""
-        await process_config(await async_integration_yaml_config(hass, DOMAIN))
+        await _async_process_config(
+            hass, await async_integration_yaml_config(hass, DOMAIN)
+        )
 
     await async_get_loc_elev()
-    await process_config(config, run_immediately=False)
+    await _async_process_config(hass, config, run_immediately=False)
     async_register_admin_service(hass, DOMAIN, SERVICE_RELOAD, reload_config)
     hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, async_get_loc_elev)
 

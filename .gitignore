@@ -1,6 +1,9 @@
-# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-*$py.class
-
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+.coverage
+.mypy_cache/
+.hypothesis/
 .vscode/

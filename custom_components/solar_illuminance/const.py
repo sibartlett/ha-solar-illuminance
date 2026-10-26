@@ -1,4 +1,5 @@
 """Constants for Solar Illuminance integration."""
+
 from datetime import timedelta
 
 DOMAIN = "solar_illuminance"

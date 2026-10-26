@@ -1,25 +1,26 @@
 name: Validate
 
 on:
-  pull_request:
   push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# Read-only: the workflows only check out and test the code.
+permissions:
+  contents: read
 
 jobs:
-  validate-hassfest:
+  hassfest:
     runs-on: ubuntu-latest
-    name: With hassfest
     steps:
-    - name: 📥 Checkout the repository
-      uses: actions/checkout@v6
+      - uses: actions/checkout@v7
+      - uses: home-assistant/actions/hassfest@master
 
-    - name: 🏃 Hassfest validation
-      uses: "home-assistant/actions/hassfest@master"
-
-  validate-hacs:
+  hacs:
     runs-on: ubuntu-latest
-    name: With HACS Action
     steps:
-    - name: 🏃 HACS validation
-      uses: hacs/action@main
-      with:
-        category: integration
+      - uses: hacs/action@main
+        with:
+          category: integration

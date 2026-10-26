@@ -1,1 +1,1 @@
-"""Solar Illuminance Sensor."""
+"""Custom integrations for Home Assistant."""

@@ -1,11 +1,8 @@
 """Config flow for Solar Illuminance integration."""
-from __future__ import annotations
 
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, cast
-
-import voluptuous as vol
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.config_entries import (
     SOURCE_IMPORT,
@@ -33,6 +30,13 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     TextSelector,
 )
+
+# Recent Home Assistant releases type flows for probatio, and still take
+# voluptuous, its API-compatible predecessor, which 2026.7 needs.
+if TYPE_CHECKING:
+    import probatio as vol
+else:
+    import voluptuous as vol
 
 from .const import (
     CONF_FALLBACK,
@@ -120,7 +124,9 @@ class SolarIlluminanceConfigFlow(ConfigFlow, SolarIlluminanceFlow, domain=DOMAIN
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> SolarIlluminanceOptionsFlow:
+    def async_get_options_flow(
+        config_entry: ConfigEntry,
+    ) -> SolarIlluminanceOptionsFlow:
         """Get the options flow for this handler."""
         flow = SolarIlluminanceOptionsFlow(config_entry)
         flow.init_step = "options"

@@ -2,7 +2,6 @@
 
 A Sensor platform that estimates outdoor illuminance from current weather conditions.
 """
-from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
@@ -15,10 +14,8 @@ from math import asin, cos, exp, radians, sin
 import re
 from typing import Any, cast
 
-import astral.sun
 from astral import Observer
-import voluptuous as vol
-
+import astral.sun
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -66,6 +63,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback, EntityPla
 from homeassistant.helpers.event import async_track_state_change_event
 import homeassistant.util.dt as dt_util
 from homeassistant.util.hass_dict import HassKey
+import voluptuous as vol
 
 from .const import (
     CONF_FALLBACK,
@@ -236,7 +234,9 @@ class SolarIlluminanceSensor(SensorEntity):
     _warned = False
     _sun_data: tuple[date, tuple[datetime, datetime, datetime, datetime]] | None = None
 
-    def __init__(self, entity_description: SolarIlluminanceSensorEntityDescription) -> None:
+    def __init__(
+        self, entity_description: SolarIlluminanceSensorEntityDescription
+    ) -> None:
         """Initialize sensor."""
         self.entity_description = entity_description
         if entity_description.unique_id:
@@ -346,75 +346,95 @@ class SolarIlluminanceSensor(SensorEntity):
         if not self.weather_entity:
             return
 
-        condition = entity_state and entity_state.state
+        condition = entity_state.state if entity_state else None
         if condition in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             condition = None
 
         # If entity type, and potentially assocated mappings, have not been determined
         # yet, try to determine them.
-        if self._entity_status <= EntityStatus.NO_ATTRIBUTION:
-            if condition:
-                assert entity_state
-                try:
-                    float(condition)
-                    self._entity_status = EntityStatus.OK_CLOUD
-                    _LOGGER.info(
-                        "%s: Supported sensor %s: cloud coverage",
-                        self.name,
-                        self.weather_entity,
-                    )
-                except ValueError:
-                    attribution = cast(
-                        str | None, entity_state.attributes.get(ATTR_ATTRIBUTION)
-                    )
-                    self._get_mappings(attribution, entity_state.domain)
-                    if self._entity_status == EntityStatus.OK_CONDITION:
-                        _LOGGER.info(
-                            "%s: Supported sensor %s: %s is %s",
-                            self.name,
-                            self.weather_entity,
-                            ATTR_ATTRIBUTION,
-                            attribution,
-                        )
+        if (
+            self._entity_status <= EntityStatus.NO_ATTRIBUTION
+            and not self._detect_entity_type(entity_state, condition)
+        ):
+            return
 
-            if self._entity_status <= EntityStatus.NO_ATTRIBUTION:
-                if self.hass.is_running:
-                    _LOGGER.debug(
-                        "%s: Sensor %s: "
-                        "not a number, no %s attribute, or doesn't exist"
-                        "; will use standard condition mappings",
-                        self.name,
-                        self.weather_entity,
-                        ATTR_ATTRIBUTION,
-                    )
-                    self._warned = True
-                    self._sk_mapping = MAPPING
-                    self._entity_status = EntityStatus.OK_CONDITION
-                else:
-                    return
-
-        if condition:
-            self._warned = False
-        else:
+        if not condition:
             if not self._warned:
                 _LOGGER.warning("%s: Weather data not available", self.name)
                 self._warned = True
             return
+        self._warned = False
 
         if self._entity_status == EntityStatus.OK_CLOUD:
-            try:
-                cloud = min(max(0, float(condition)), 100)
-            except ValueError:
-                _LOGGER.error(
-                    "%s: Cloud coverage sensor state is not a number: %s",
-                    self.name,
-                    condition,
-                )
-            else:
-                self._cond_desc = f"({round(cloud)}%)"
-                self._sk = 10 ** (cloud / 100)
-            return
+            self._get_divisor_from_cloud_coverage(condition)
+        else:
+            self._get_divisor_from_condition(condition)
 
+    def _detect_entity_type(
+        self, entity_state: State | None, condition: str | None
+    ) -> bool:
+        """Determine whether the input entity reports cloud coverage or conditions.
+
+        Returns False if it can't be determined yet.
+        """
+        if condition:
+            assert entity_state
+            try:
+                float(condition)
+                self._entity_status = EntityStatus.OK_CLOUD
+                _LOGGER.info(
+                    "%s: Supported sensor %s: cloud coverage",
+                    self.name,
+                    self.weather_entity,
+                )
+            except ValueError:
+                attribution = cast(
+                    str | None, entity_state.attributes.get(ATTR_ATTRIBUTION)
+                )
+                self._get_mappings(attribution, entity_state.domain)
+                if self._entity_status == EntityStatus.OK_CONDITION:
+                    _LOGGER.info(
+                        "%s: Supported sensor %s: %s is %s",
+                        self.name,
+                        self.weather_entity,
+                        ATTR_ATTRIBUTION,
+                        attribution,
+                    )
+
+        if self._entity_status > EntityStatus.NO_ATTRIBUTION:
+            return True
+        if not self.hass.is_running:
+            return False
+
+        _LOGGER.debug(
+            "%s: Sensor %s: "
+            "not a number, no %s attribute, or doesn't exist"
+            "; will use standard condition mappings",
+            self.name,
+            self.weather_entity,
+            ATTR_ATTRIBUTION,
+        )
+        self._warned = True
+        self._sk_mapping = MAPPING
+        self._entity_status = EntityStatus.OK_CONDITION
+        return True
+
+    def _get_divisor_from_cloud_coverage(self, condition: str) -> None:
+        """Get divisor from a cloud coverage percentage."""
+        try:
+            cloud = min(max(0, float(condition)), 100)
+        except ValueError:
+            _LOGGER.error(
+                "%s: Cloud coverage sensor state is not a number: %s",
+                self.name,
+                condition,
+            )
+        else:
+            self._cond_desc = f"({round(cloud)}%)"
+            self._sk = 10 ** (cloud / 100)
+
+    def _get_divisor_from_condition(self, condition: str) -> None:
+        """Get divisor from a weather condition."""
         assert self._entity_status == EntityStatus.OK_CONDITION
         assert self._sk_mapping
 
