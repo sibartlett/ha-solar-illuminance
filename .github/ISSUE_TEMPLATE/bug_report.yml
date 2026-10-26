@@ -1,0 +1,52 @@
+name: Bug report
+description: Something doesn't work as the documentation describes.
+labels: [bug]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened
+      description: >-
+        What you did, what you expected, and what happened instead. For a
+        wrong value, include the value, the time it was shown, and roughly
+        where you are, e.g. northern England.
+    validations:
+      required: true
+  - type: input
+    id: integration-version
+    attributes:
+      label: Integration version
+      description: In HACS, or Settings → Devices & services → Solar Illuminance.
+    validations:
+      required: true
+  - type: input
+    id: ha-version
+    attributes:
+      label: Home Assistant version
+      description: Settings → About.
+    validations:
+      required: true
+  - type: input
+    id: options
+    attributes:
+      label: Sensor options
+      description: >-
+        The mode, update period and illuminance divider, from the sensor's
+        Configure dialog.
+  - type: input
+    id: weather
+    attributes:
+      label: Weather data source
+      description: >-
+        The integration that provides it, e.g. Met.no or AccuWeather, and
+        whether it's a weather entity or a cloud coverage sensor. Include its
+        state when the problem happened, if you can.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug logs
+      description: >-
+        Settings → Devices & services → Solar Illuminance → ⋮ → Enable debug
+        logging, wait for the sensor to update, then disable it to download
+        the log. Paste the lines about solar_illuminance.
+      render: text
