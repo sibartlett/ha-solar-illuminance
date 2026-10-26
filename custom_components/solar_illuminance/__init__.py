@@ -15,7 +15,7 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import Event, HomeAssistant, ServiceCall
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.reload import async_integration_yaml_config
 from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.sun import get_astral_observer
@@ -41,11 +41,6 @@ PLATFORMS = [Platform.SENSOR]
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up composite integration."""
-    # An Illuminance service was created in previous versions. Remove it if it exists,
-    # since it is no longer useful and it is not created anymore.
-    dev_reg = dr.async_get(hass)
-    if device := dev_reg.async_get_device({(DOMAIN, DOMAIN)}):
-        dev_reg.async_remove_device(device.id)
 
     async def async_get_loc_elev(event: Event | None = None) -> None:
         """Get astral observer for current HA configuration."""
