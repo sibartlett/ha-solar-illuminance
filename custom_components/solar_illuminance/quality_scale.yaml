@@ -1,0 +1,130 @@
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration has no actions.
+  appropriate-polling:
+    status: done
+    comment: |
+      The value is calculated, every 5 minutes by default, which the user can
+      change, and whenever the weather data source changes.
+  brands: done
+  common-modules:
+    status: exempt
+    comment: There's one entity and no coordinator, so nothing to share.
+  config-flow: done
+  config-flow-test-coverage: done
+  dependency-transparency:
+    status: exempt
+    comment: The integration has no requirements.
+  docs-actions:
+    status: exempt
+    comment: The integration has no actions.
+  docs-conditions:
+    status: exempt
+    comment: The integration has no conditions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: todo
+  docs-triggers:
+    status: exempt
+    comment: The integration has no triggers.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure:
+    status: exempt
+    comment: There's no device or service to connect to.
+  test-before-setup:
+    status: exempt
+    comment: |
+      There's no device or service to connect to. A missing weather data
+      source is reported with a repair.
+  unique-config-entry:
+    status: exempt
+    comment: |
+      Each entry is a sensor, and there can be several, for example with
+      different modes or weather data sources.
+
+  # Silver
+  action-exceptions:
+    status: exempt
+    comment: The integration has no actions.
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable:
+    status: exempt
+    comment: |
+      The value is calculated, so it's always available. Without weather data,
+      the illuminance divider is used.
+  integration-owner: done
+  log-when-unavailable:
+    status: exempt
+    comment: |
+      The sensor is never unavailable. It logs a warning once when its weather
+      data source has no weather data.
+  parallel-updates: done
+  reauthentication-flow:
+    status: exempt
+    comment: The integration has no authentication.
+  test-coverage: done
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: There's nothing to discover.
+  discovery-update-info:
+    status: exempt
+    comment: There's nothing to discover.
+  docs-data-update: todo
+  docs-examples: todo
+  docs-known-limitations: todo
+  docs-supported-devices:
+    status: done
+    comment: The supported weather data sources are listed.
+  docs-supported-functions: done
+  docs-troubleshooting: todo
+  docs-use-cases: todo
+  dynamic-devices:
+    status: exempt
+    comment: Each entry has one device, for its sensor.
+  entity-category:
+    status: exempt
+    comment: The sensor is the integration's primary entity.
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: exempt
+    comment: The sensor is the integration's only entity.
+  entity-translations:
+    status: exempt
+    comment: The sensor is named after its device, the entry.
+  exception-translations:
+    status: exempt
+    comment: The integration raises no exceptions for the user.
+  icon-translations:
+    status: exempt
+    comment: The sensor uses its device class's icon.
+  reconfiguration-flow:
+    status: exempt
+    comment: Every setting can be changed in the options flow.
+  repair-issues:
+    status: done
+    comment: |
+      A weather data source that doesn't exist, or that has had no weather
+      data for an hour.
+  stale-devices:
+    status: exempt
+    comment: The device is removed with its entry.
+
+  # Platinum
+  async-dependency:
+    status: exempt
+    comment: Astral, from Home Assistant, only calculates; it does no I/O.
+  inject-websession:
+    status: exempt
+    comment: The integration makes no HTTP requests.
+  strict-typing: done

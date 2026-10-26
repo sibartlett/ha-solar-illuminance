@@ -102,6 +102,9 @@ MAPPING: tuple[tuple[Num, tuple[str, ...]], ...] = (
 
 _LOGGER = logging.getLogger(__name__)
 
+# The sensor is calculated locally, so its updates needn't be limited.
+PARALLEL_UPDATES = 0
+
 
 class Mode(Enum):
     """Illuminance mode."""
