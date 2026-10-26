@@ -4,7 +4,7 @@
   "codeowners": ["@sibartlett"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/sibartlett/ha-solar-illuminance/blob/5.8.1/README.md",
+  "documentation": "https://github.com/sibartlett/ha-solar-illuminance",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/sibartlett/ha-solar-illuminance/issues",
   "requirements": [],
