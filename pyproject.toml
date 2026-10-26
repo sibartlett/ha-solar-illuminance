@@ -164,6 +164,10 @@ known-third-party = ["homeassistant", "pytest_homeassistant_custom_component"]
 combine-as-imports = true
 split-on-trailing-comma = false
 
+[tool.ruff.lint.per-file-ignores]
+# A standalone script, not a package.
+"script/*" = ["T20", "INP001"]
+
 # Stricter than core's 25: keep functions simple.
 [tool.ruff.lint.mccabe]
 max-complexity = 10

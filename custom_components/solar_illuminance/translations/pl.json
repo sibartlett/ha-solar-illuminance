@@ -45,11 +45,5 @@
                 "irradiance": "Natężenie promieniowania"
             }
         }
-    },
-    "services": {
-        "reload": {
-            "name": "Przeładowanie",
-            "description": "Ponownie załadowuje Natężenie oświetlenia słoneczne z konfiguracji YAML."
-        }
     }
 }

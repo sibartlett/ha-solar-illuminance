@@ -78,26 +78,19 @@ After it has been downloaded you will need to restart Home Assistant.
 
 This custom integration supports HomeAssistant versions 2026.7 or newer.
 
-## Services
+## Configuration
 
-### `solar_illuminance.reload`
+Add sensors in the UI: go to **Settings** -> **Devices & services** -> **Add integration** and search for "Solar Illuminance". Each sensor has the following options. All but the name can be changed later with **Configure**; rename the sensor by renaming its entry.
 
-Reloads Solar Illuminance from the YAML-configuration. Also adds `SOLAR_ILLUMINANCE` to the Developers Tools -> YAML page.
+Option | Description
+-|-
+Name | Name of the sensor. Default is `Solar Illuminance`.
+Mode | `Normal` (default) uses sun elevation, `Simple` uses time of day, and `Irradiance` is the same as `Normal`, except the value is expressed as irradiance in Watts/M².
+Update period in minutes | How often the sensor updates. Minimum is 0.5 (30 seconds). Default is 5.
+Weather data source | Optional entity that indicates current weather conditions or cloud coverage percentage.
+Illuminance divider when no weather data | Divisor to use when weather data is not available. Must be in the range of 1 (clear) through 10 (dark). Default is 10 if a weather data source is selected, or 1 if not.
 
-## Configuration variables
-
-A list of configuration options for one or more sensors. Each sensor is defined by the following options.
-
-> Note: This defines configuration via YAML. However, the same sensors can be added in the UI.
-
-Key | Optional | Description
--|-|-
-`unique_id` | no | Unique identifier for sensor. This allows any of the remaining options to be changed without looking like a new sensor. (Only required for YAML-based configuration.)
-`entity_id` | yes | Entity ID of another entity that indicates current weather conditions or cloud coverage percentage
-`fallback` | yes | Illuminance divisor to use when weather data is not available. Must be in the range of 1 (clear) through 10 (dark.) Default is 10 if `entity_id` is used, or 1 if not.
-`mode` | yes | Mode of operation. Choices are `normal` (default) which uses sun elevation, `simple` which uses time of day and `irradiance` which is the same as `normal`, except the value is expressed as irradiance in Watts/M².
-`name` | yes | Name of the sensor. Default is `Solar Illuminance`.
-`scan_interval` | yes | Update interval. Minimum is 30 seconds. Default is 5 minutes.
+YAML configuration is not supported.
 
 ## Releases Before 2.1.0
 See https://github.com/pnbruckner/homeassistant-config/blob/master/docs/illuminance.md.

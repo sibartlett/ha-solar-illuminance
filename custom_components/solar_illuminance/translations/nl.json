@@ -45,11 +45,5 @@
                 "irradiance": "Bestraling"
             }
         }
-    },
-    "services": {
-        "reload": {
-            "name": "Herlaadt",
-            "description": "Herlaadt Zonne-Verlichtingssterkte vanuit de YAML-configuratie."
-        }
     }
 }

@@ -45,11 +45,5 @@
                 "irradiance": "Irradianza"
             }
         }
-    },
-    "services": {
-        "reload": {
-            "name": "Ricarica",
-            "description": "Ricarica Illuminazione Solare dalla configurazione YAML."
-        }
     }
 }

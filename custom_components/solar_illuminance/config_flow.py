@@ -1,24 +1,16 @@
 """Config flow for Solar Illuminance integration."""
 
 from abc import abstractmethod
-from datetime import timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import (
-    SOURCE_IMPORT,
     ConfigEntry,
     ConfigEntryBaseFlow,
     ConfigFlow,
     ConfigFlowResult,
-    OptionsFlowWithConfigEntry,
+    OptionsFlow,
 )
-from homeassistant.const import (
-    CONF_ENTITY_ID,
-    CONF_MODE,
-    CONF_NAME,
-    CONF_SCAN_INTERVAL,
-    CONF_UNIQUE_ID,
-)
+from homeassistant.const import CONF_ENTITY_ID, CONF_MODE, CONF_NAME, CONF_SCAN_INTERVAL
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     EntitySelector,
@@ -128,37 +120,12 @@ class SolarIlluminanceConfigFlow(ConfigFlow, SolarIlluminanceFlow, domain=DOMAIN
         config_entry: ConfigEntry,
     ) -> SolarIlluminanceOptionsFlow:
         """Get the options flow for this handler."""
-        flow = SolarIlluminanceOptionsFlow(config_entry)
-        flow.init_step = "options"
-        return flow
-
-    @classmethod
-    @callback
-    def async_supports_options_flow(cls, config_entry: ConfigEntry) -> bool:
-        """Return options flow support for this handler."""
-        if config_entry.source == SOURCE_IMPORT:
-            return False
-        return True
+        return SolarIlluminanceOptionsFlow()
 
     @property
     def options(self) -> dict[str, Any]:
         """Return mutable copy of options."""
         return self._options
-
-    async def async_step_import(self, data: dict[str, Any]) -> ConfigFlowResult:
-        """Import config entry from configuration."""
-        title = data.pop(CONF_NAME)
-        # Convert from timedelta to float in minutes.
-        data[CONF_SCAN_INTERVAL] = (
-            cast(timedelta, data[CONF_SCAN_INTERVAL]).total_seconds() / 60
-        )
-        if existing_entry := await self.async_set_unique_id(data.pop(CONF_UNIQUE_ID)):
-            self.hass.config_entries.async_update_entry(
-                existing_entry, title=title, options=data
-            )
-            return self.async_abort(reason="already_configured")
-
-        return self.async_create_entry(title=title, data={}, options=data)
 
     async def async_step_user(
         self, _: dict[str, Any] | None = None
@@ -186,11 +153,25 @@ class SolarIlluminanceConfigFlow(ConfigFlow, SolarIlluminanceFlow, domain=DOMAIN
         return self.async_create_entry(title=self._name, data={}, options=self.options)
 
 
-class SolarIlluminanceOptionsFlow(OptionsFlowWithConfigEntry, SolarIlluminanceFlow):
+class SolarIlluminanceOptionsFlow(OptionsFlow, SolarIlluminanceFlow):
     """Solar Illuminance integration options flow."""
+
+    init_step = "options"
+
+    def __init__(self) -> None:
+        """Initialize options flow."""
+        self._options: dict[str, Any] | None = None
+
+    @property
+    def options(self) -> dict[str, Any]:
+        """Return mutable copy of options."""
+        # The config entry is only available once the flow has started.
+        if self._options is None:
+            self._options = dict(self.config_entry.options)
+        return self._options
 
     async def async_step_done(
         self, _: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Finish the flow."""
-        return self.async_create_entry(title="", data=self.options or {})
+        return self.async_create_entry(title="", data=self.options)

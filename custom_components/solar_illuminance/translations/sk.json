@@ -47,11 +47,5 @@
                 "irradiance": "Ožiarenie"
             }
         }
-    },
-    "services": {
-        "reload": {
-            "name": "Znovu načítať",
-            "description": "Znovu načíta Solárne osvetlenie z YAML-konfigurácie."
-        }
     }
 }

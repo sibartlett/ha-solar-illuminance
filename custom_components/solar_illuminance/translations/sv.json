@@ -45,11 +45,5 @@
                 "irradiance": "Bestrålning"
             }
         }
-    },
-    "services": {
-        "reload": {
-            "name": "Ladda om",
-            "description": "Laddar om Solar Illuminance från YAML-konfigurationen."
-        }
     }
 }

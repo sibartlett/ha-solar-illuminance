@@ -3,7 +3,6 @@
 A Sensor platform that estimates outdoor illuminance from current weather conditions.
 """
 
-import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -14,7 +13,6 @@ from math import asin, cos, exp, radians, sin
 import re
 from typing import Any, cast
 
-from astral import Observer
 import astral.sun
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -44,7 +42,6 @@ from homeassistant.const import (
     ATTR_ATTRIBUTION,
     CONF_ENTITY_ID,
     CONF_MODE,
-    CONF_NAME,
     CONF_SCAN_INTERVAL,
     LIGHT_LUX,
     STATE_UNAVAILABLE,
@@ -58,22 +55,16 @@ from homeassistant.core import (
     State,
     callback,
 )
-import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.entity_platform import AddEntitiesCallback, EntityPlatform
-from homeassistant.helpers.event import async_track_state_change_event
-import homeassistant.util.dt as dt_util
-from homeassistant.util.hass_dict import HassKey
-import voluptuous as vol
-
-from .const import (
-    CONF_FALLBACK,
-    DEFAULT_FALLBACK,
-    DEFAULT_NAME,
-    DEFAULT_SCAN_INTERVAL,
-    DOMAIN,
-    LUX_PER_WPSM,
-    MIN_SCAN_INTERVAL,
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import (
+    async_track_state_change_event,
+    async_track_time_interval,
 )
+from homeassistant.helpers.sun import get_astral_observer
+import homeassistant.util.dt as dt_util
+
+from .const import CONF_FALLBACK, DEFAULT_FALLBACK, DOMAIN, LUX_PER_WPSM
 
 # Standard sk to conditions mapping
 
@@ -116,8 +107,6 @@ ECOBEE_MAPPING = (
 
 ADDITIONAL_MAPPINGS = ((AW_PATTERN, AW_MAPPING), (ECOBEE_PATTERN, ECOBEE_MAPPING))
 
-LOC_ELEV: HassKey[Observer] = HassKey(DOMAIN)
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -130,16 +119,6 @@ class Mode(Enum):
 
 
 MODES = list(Mode.__members__)
-
-SOLAR_ILLUMINANCE_SCHEMA = {
-    vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
-        cv.time_period, vol.Range(min=MIN_SCAN_INTERVAL)
-    ),
-    vol.Optional(CONF_ENTITY_ID): cv.entity_id,
-    vol.Optional(CONF_MODE, default=MODES[0]): vol.In(MODES),
-    vol.Optional(CONF_FALLBACK): vol.All(vol.Coerce(float), vol.Range(1, 10)),
-}
 
 _20_MIN = timedelta(minutes=20)
 _40_MIN = timedelta(minutes=40)
@@ -183,7 +162,7 @@ async def async_setup_entry(
     entity_description = SolarIlluminanceSensorEntityDescription(
         key=DOMAIN,
         device_class=device_class,
-        name=entry.title,
+        name=None,
         native_unit_of_measurement=native_unit_of_measurement,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=suggested_display_precision,
@@ -194,7 +173,12 @@ async def async_setup_entry(
         scan_interval=timedelta(minutes=entry.options[CONF_SCAN_INTERVAL]),
     )
 
-    async_add_entities([SolarIlluminanceSensor(entity_description)], True)
+    device_info = DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=entry.title,
+        entry_type=DeviceEntryType.SERVICE,
+    )
+    async_add_entities([SolarIlluminanceSensor(entity_description, device_info)])
 
 
 def _illumiance(elev: Num) -> float:
@@ -227,6 +211,8 @@ class SolarIlluminanceSensor(SensorEntity):
     """Solar Illuminance sensor."""
 
     entity_description: SolarIlluminanceSensorEntityDescription
+    _attr_has_entity_name = True
+    _attr_should_poll = False
     _entity_status = EntityStatus.NOT_SEEN
     _sk_mapping: Sequence[tuple[Num, Sequence[str]]] | None = None
     _sk: Num
@@ -235,11 +221,14 @@ class SolarIlluminanceSensor(SensorEntity):
     _sun_data: tuple[date, tuple[datetime, datetime, datetime, datetime]] | None = None
 
     def __init__(
-        self, entity_description: SolarIlluminanceSensorEntityDescription
+        self,
+        entity_description: SolarIlluminanceSensorEntityDescription,
+        device_info: DeviceInfo,
     ) -> None:
         """Initialize sensor."""
         self.entity_description = entity_description
         self._attr_unique_id = entity_description.unique_id
+        self._attr_device_info = device_info
 
     @cached_property
     def weather_entity(self) -> str | None:
@@ -256,27 +245,26 @@ class SolarIlluminanceSensor(SensorEntity):
         """Fallback illuminance divisor."""
         return cast(float, self.entity_description.fallback)
 
-    @callback
-    def add_to_platform_start(
-        self,
-        hass: HomeAssistant,
-        platform: EntityPlatform,
-        parallel_updates: asyncio.Semaphore | None,
-    ) -> None:
-        """Start adding an entity to a platform."""
-        # This method is called before first call to async_update.
-
-        if (scan_interval := self.entity_description.scan_interval) is not None:
-            platform.scan_interval = scan_interval
-            if hasattr(platform, "scan_interval_seconds"):
-                platform.scan_interval_seconds = scan_interval.total_seconds()
-        super().add_to_platform_start(hass, platform, parallel_updates)
-
-        # Now that parent method has been called, self.hass has been initialized.
-
+    async def async_added_to_hass(self) -> None:
+        """Start updating, at the scan interval and when the weather changes."""
         self._get_divisor_from_weather_data(
-            hass.states.get(self.weather_entity) if self.weather_entity else None
+            self.hass.states.get(self.weather_entity) if self.weather_entity else None
         )
+        await self.async_update()
+
+        @callback
+        def scheduled_update(now: datetime) -> None:
+            """Update at the scan interval."""
+            self.async_schedule_update_ha_state(True)
+
+        self.async_on_remove(
+            async_track_time_interval(
+                self.hass,
+                scheduled_update,
+                cast(timedelta, self.entity_description.scan_interval),
+            )
+        )
+
         if not self.weather_entity:
             return
 
@@ -297,7 +285,7 @@ class SolarIlluminanceSensor(SensorEntity):
         # When source entity changes check to see if we should update.
         self.async_on_remove(
             async_track_state_change_event(
-                hass, self.weather_entity, sensor_state_listener
+                self.hass, self.weather_entity, sensor_state_listener
             )
         )
 
@@ -326,7 +314,7 @@ class SolarIlluminanceSensor(SensorEntity):
         self._attr_native_value = round(value / self._sk, digits)
         _LOGGER.debug(
             "%s: Updating %s -> %s / %s = %s",
-            self.name,
+            self.entity_id,
             self._cond_desc,
             value,
             self._sk,
@@ -357,7 +345,7 @@ class SolarIlluminanceSensor(SensorEntity):
 
         if not condition:
             if not self._warned:
-                _LOGGER.warning("%s: Weather data not available", self.name)
+                _LOGGER.warning("%s: Weather data not available", self.entity_id)
                 self._warned = True
             return
         self._warned = False
@@ -381,7 +369,7 @@ class SolarIlluminanceSensor(SensorEntity):
                 self._entity_status = EntityStatus.OK_CLOUD
                 _LOGGER.info(
                     "%s: Supported sensor %s: cloud coverage",
-                    self.name,
+                    self.entity_id,
                     self.weather_entity,
                 )
             except ValueError:
@@ -392,7 +380,7 @@ class SolarIlluminanceSensor(SensorEntity):
                 if self._entity_status == EntityStatus.OK_CONDITION:
                     _LOGGER.info(
                         "%s: Supported sensor %s: %s is %s",
-                        self.name,
+                        self.entity_id,
                         self.weather_entity,
                         ATTR_ATTRIBUTION,
                         attribution,
@@ -407,7 +395,7 @@ class SolarIlluminanceSensor(SensorEntity):
             "%s: Sensor %s: "
             "not a number, no %s attribute, or doesn't exist"
             "; will use standard condition mappings",
-            self.name,
+            self.entity_id,
             self.weather_entity,
             ATTR_ATTRIBUTION,
         )
@@ -423,7 +411,7 @@ class SolarIlluminanceSensor(SensorEntity):
         except ValueError:
             _LOGGER.error(
                 "%s: Cloud coverage sensor state is not a number: %s",
-                self.name,
+                self.entity_id,
                 condition,
             )
         else:
@@ -440,7 +428,7 @@ class SolarIlluminanceSensor(SensorEntity):
                 self._cond_desc = f"({condition})"
                 self._sk = sk
                 return
-        _LOGGER.error("%s: Unexpected current condition: %s", self.name, condition)
+        _LOGGER.error("%s: Unexpected current condition: %s", self.entity_id, condition)
 
     def _get_mappings(self, attribution: str | None, domain: str) -> None:
         """Get sk -> conditions mappings."""
@@ -465,7 +453,7 @@ class SolarIlluminanceSensor(SensorEntity):
         # still zero. I.e., it's nighttime.
         if sun_factor == 0:
             # For historic reasons, return a value of 10.
-            _LOGGER.debug("%s: Updating -> 10", self.name)
+            _LOGGER.debug("%s: Updating -> 10", self.entity_id)
             self._attr_native_value = 10
             raise AbortUpdate
 
@@ -473,7 +461,7 @@ class SolarIlluminanceSensor(SensorEntity):
 
     def _astral_event(self, event: str, date_or_dt: date | datetime) -> Any:
         """Get astral event."""
-        observer = self.hass.data[LOC_ELEV]
+        observer = get_astral_observer(self.hass)
         if event == "solar_elevation":
             return astral.sun.elevation(observer, date_or_dt)
         if event == "sunrise":
