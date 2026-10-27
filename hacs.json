@@ -1,6 +1,6 @@
 {
   "name": "Solar Illuminance",
-  "homeassistant": "2026.7.0",
+  "homeassistant": "2026.9.0",
   "render_readme": true,
   "zip_release": true,
   "filename": "solar_illuminance.zip"

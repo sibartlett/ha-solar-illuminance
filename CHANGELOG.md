@@ -74,7 +74,8 @@ Each entry's diagnostics can be downloaded, to include when reporting a
 problem. They have its options, how its value was worked out, and the
 weather data source's state.
 
-### Requires Home Assistant 2026.7
+### Requires Home Assistant 2026.9
 
-Solar Illuminance needs Home Assistant 2026.7 or newer, and works with the
-latest releases.
+Solar Illuminance needs Home Assistant 2026.9 or newer, and works with the
+latest releases. It uses probatio, which replaced voluptuous in Home Assistant
+2026.9.

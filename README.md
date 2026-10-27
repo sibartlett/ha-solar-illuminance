@@ -49,7 +49,7 @@ where `<config>` is your Home Assistant configuration directory. Then restart Ho
 
 ### Versions
 
-This custom integration supports Home Assistant 2026.7 or newer.
+This custom integration supports Home Assistant 2026.9 or newer.
 
 ## Configuration
 

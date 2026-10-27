@@ -33,9 +33,9 @@ jobs:
       matrix:
         include:
           - name: pinned
-          # The minimum version in hacs.json: Home Assistant 2026.7.0.
+          # The minimum version in hacs.json: Home Assistant 2026.9.0.
           - name: minimum
-            homeassistant: pytest-homeassistant-custom-component==0.13.344
+            homeassistant: pytest-homeassistant-custom-component==0.13.363
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

@@ -1,7 +1,7 @@
 """Config flow for Solar Illuminance integration."""
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -19,13 +19,7 @@ from homeassistant.helpers.selector import (
     NumberSelectorMode,
     TextSelector,
 )
-
-# Recent Home Assistant releases type flows for probatio, and still take
-# voluptuous, its API-compatible predecessor, which 2026.7 needs.
-if TYPE_CHECKING:
-    import probatio as vol
-else:
-    import voluptuous as vol
+import probatio as vol
 
 from .const import (
     CONF_FALLBACK,
