@@ -38,10 +38,13 @@ illuminance divider.
 
 ### Repairs for the weather data source
 
-If a sensor's weather data source no longer exists, because it was deleted or
-its entity ID changed, Home Assistant now shows a repair. It also shows one if
+If a sensor's weather data source no longer exists, for example because it was
+deleted, Home Assistant now shows a repair. It also shows one if
 the source has had no weather data for an hour. Until then, as before, the
 sensor uses its illuminance divider instead of the weather.
+
+Renaming the weather data source's entity ID no longer leaves the sensor
+without it: the sensor follows the new ID.
 
 ### Diagnostics
 

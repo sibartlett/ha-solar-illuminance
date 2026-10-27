@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.setup import async_setup_component
 import pytest
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
@@ -75,3 +76,38 @@ async def test_rename(hass: HomeAssistant, setup_entry: SetupEntry) -> None:
     state = hass.states.get("sensor.garden")
     assert state is not None
     assert state.name == "Back Garden"
+
+
+@pytest.mark.usefixtures("noon")
+async def test_weather_entity_renamed(
+    hass: HomeAssistant,
+    setup_entry: SetupEntry,
+    entity_registry: er.EntityRegistry,
+    issue_registry: ir.IssueRegistry,
+) -> None:
+    """Test renaming the weather data source updates the sensor's options."""
+    source = entity_registry.async_get_or_create("weather", "met", "home")
+    hass.states.async_set(source.entity_id, "cloudy")
+    entry = await setup_entry(entity_id=source.entity_id)
+    assert hass.states.get(ENTITY_ID).state == "24467"
+
+    entity_registry.async_update_entity(
+        source.entity_id, new_entity_id="weather.garden"
+    )
+    hass.states.async_remove(source.entity_id)
+    hass.states.async_set("weather.garden", "cloudy")
+    await hass.async_block_till_done()
+
+    assert entry.options["entity_id"] == "weather.garden"
+    assert hass.states.get(ENTITY_ID).state == "24467"
+    assert list(issue_registry.issues) == []
+    hass.states.async_set("weather.garden", "sunny")
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY_ID).state == "122334"
+
+    # Other changes to the source, and other entities' renames, are ignored.
+    entity_registry.async_update_entity("weather.garden", name="Garden")
+    other = entity_registry.async_get_or_create("weather", "met", "other")
+    entity_registry.async_update_entity(other.entity_id, new_entity_id="weather.other")
+    await hass.async_block_till_done()
+    assert entry.options["entity_id"] == "weather.garden"
