@@ -13,6 +13,7 @@ from homeassistant.const import (
     UnitOfIrradiance,
 )
 from homeassistant.core import CoreState, HomeAssistant
+from homeassistant.setup import async_setup_component
 import pytest
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
@@ -364,5 +365,22 @@ async def test_scan_interval(
     freezer.tick(timedelta(minutes=1))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
+
+    assert _state(hass) == pytest.approx(before + 10000 / 60, abs=1)
+
+
+async def test_update_entity(
+    hass: HomeAssistant, setup_entry: SetupEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """Test the homeassistant.update_entity action recalculates the value."""
+    assert await async_setup_component(hass, "homeassistant", {})
+    freezer.move_to(SUNRISE)
+    await setup_entry(mode="simple", scan_interval=60)
+    before = _state(hass)
+
+    freezer.tick(timedelta(minutes=1))
+    await hass.services.async_call(
+        "homeassistant", "update_entity", {"entity_id": ENTITY_ID}, blocking=True
+    )
 
     assert _state(hass) == pytest.approx(before + 10000 / 60, abs=1)

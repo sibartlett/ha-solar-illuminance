@@ -68,6 +68,8 @@ from .issues import (
     async_set_weather_source_issue,
 )
 
+Num = float | int
+
 # Illuminance divisor for each weather condition. As well as the standard
 # conditions, it has those of weather sources that report others: ecobee's
 # snowy-heavy, tornado and hazy, and older AccuWeather integrations'
@@ -119,8 +121,6 @@ MODES = list(Mode.__members__)
 
 _20_MIN = timedelta(minutes=20)
 _40_MIN = timedelta(minutes=40)
-
-Num = float | int
 
 
 ILLUMINANCE = SensorEntityDescription(
@@ -176,12 +176,12 @@ def _cloud_coverage(value: Any) -> float | None:
         return None
 
 
-class EntityStatus(Enum):
-    """What the input entity reports."""
+class SourceReports(Enum):
+    """What the weather data source reports."""
 
     NOT_SEEN = "not seen yet"
-    OK_CLOUD = "cloud coverage"
-    OK_CONDITION = "weather conditions"
+    CLOUD_COVERAGE = "cloud coverage"
+    CONDITIONS = "weather conditions"
 
 
 class SolarIlluminanceSensor(SensorEntity):
@@ -189,9 +189,9 @@ class SolarIlluminanceSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_should_poll = False
-    _entity_status = EntityStatus.NOT_SEEN
-    _sk: Num
-    _cond_desc: str | None = None
+    _source_reports = SourceReports.NOT_SEEN
+    _divisor: Num
+    _weather: str | None = None
     # The problem with the weather data last logged, if it hasn't been fixed.
     _problem: str | None = None
     # When the weather data source stopped having weather data, if it has none.
@@ -224,7 +224,7 @@ class SolarIlluminanceSensor(SensorEntity):
         self._get_divisor_from_weather_data(
             self.hass.states.get(self._weather_entity) if self._weather_entity else None
         )
-        await self.async_update()
+        self._update_value()
 
         # A repair isn't raised while Home Assistant starts, so check as soon
         # as it has, rather than at the next update.
@@ -240,7 +240,8 @@ class SolarIlluminanceSensor(SensorEntity):
         @callback
         def scheduled_update(now: datetime) -> None:
             """Update at the scan interval."""
-            self.async_schedule_update_ha_state(True)
+            self._update_value()
+            self.async_write_ha_state()
 
         self.async_on_remove(
             async_track_time_interval(
@@ -266,7 +267,8 @@ class SolarIlluminanceSensor(SensorEntity):
                 != old_state.attributes.get(ATTR_WEATHER_CLOUD_COVERAGE)
             ):
                 self._get_divisor_from_weather_data(new_state)
-                self.async_schedule_update_ha_state(True)
+                self._update_value()
+                self.async_write_ha_state()
 
         # When source entity changes check to see if we should update.
         self.async_on_remove(
@@ -281,9 +283,9 @@ class SolarIlluminanceSensor(SensorEntity):
         return {
             "entity_id": self.entity_id,
             "value": self.native_value,
-            "weather": self._cond_desc,
-            "divisor": self._sk,
-            "weather_source_reports": self._entity_status.value,
+            "weather": self._weather,
+            "divisor": self._divisor,
+            "weather_source_reports": self._source_reports.value,
             "weather_unavailable_since": since.isoformat() if since else None,
         }
 
@@ -292,7 +294,11 @@ class SolarIlluminanceSensor(SensorEntity):
         async_set_weather_source_issue(self.hass, self._entry_id, None)
 
     async def async_update(self) -> None:
-        """Update state."""
+        """Update the value when asked to, e.g. by homeassistant.update_entity."""
+        self._update_value()
+
+    def _update_value(self) -> None:
+        """Calculate the value, and raise or delete the repair."""
         self._update_weather_source_issue()
 
         now = dt_util.utcnow().replace(microsecond=0)
@@ -310,13 +316,13 @@ class SolarIlluminanceSensor(SensorEntity):
 
         # Calculate final value.
 
-        self._attr_native_value = round(value / self._sk, digits)
+        self._attr_native_value = round(value / self._divisor, digits)
         _LOGGER.debug(
             "%s: Updating %s -> %s / %s = %s",
             self.entity_id,
-            self._cond_desc,
+            self._weather,
             value,
-            self._sk,
+            self._divisor,
             self._attr_native_value,
         )
 
@@ -324,8 +330,8 @@ class SolarIlluminanceSensor(SensorEntity):
         """Get weather data from input entity."""
 
         # Use fallback unless divisor can be successfully determined from weather data.
-        self._cond_desc = "without weather data"
-        self._sk = self._fallback
+        self._weather = "without weather data"
+        self._divisor = self._fallback
 
         if not self._weather_entity:
             return
@@ -344,10 +350,10 @@ class SolarIlluminanceSensor(SensorEntity):
             return
         self._weather_unavailable_since = None
 
-        if self._entity_status is EntityStatus.NOT_SEEN:
+        if self._source_reports is SourceReports.NOT_SEEN:
             self._detect_entity_type(condition)
 
-        if self._entity_status == EntityStatus.OK_CLOUD:
+        if self._source_reports == SourceReports.CLOUD_COVERAGE:
             self._log_problem(self._get_divisor_from_cloud_coverage(condition))
             return
 
@@ -363,10 +369,10 @@ class SolarIlluminanceSensor(SensorEntity):
         )
         if cloud is None:
             return
-        cloud_sk = 10 ** (cloud / 100)
-        if problem or cloud_sk > self._sk:
-            self._cond_desc = f"({condition}, {round(cloud)}%)"
-            self._sk = cloud_sk
+        cloud_divisor = 10 ** (cloud / 100)
+        if problem or cloud_divisor > self._divisor:
+            self._weather = f"({condition}, {round(cloud)}%)"
+            self._divisor = cloud_divisor
 
     def _log_problem(self, problem: str | None) -> None:
         """Log a problem with the weather data once, until it changes or is fixed."""
@@ -402,14 +408,14 @@ class SolarIlluminanceSensor(SensorEntity):
         try:
             float(condition)
         except ValueError:
-            self._entity_status = EntityStatus.OK_CONDITION
+            self._source_reports = SourceReports.CONDITIONS
         else:
-            self._entity_status = EntityStatus.OK_CLOUD
+            self._source_reports = SourceReports.CLOUD_COVERAGE
         _LOGGER.info(
             "%s: %s reports %s",
             self.entity_id,
             self._weather_entity,
-            self._entity_status.value,
+            self._source_reports.value,
         )
 
     def _get_divisor_from_cloud_coverage(self, condition: str) -> str | None:
@@ -419,8 +425,8 @@ class SolarIlluminanceSensor(SensorEntity):
         """
         if (cloud := _cloud_coverage(condition)) is None:
             return f"Cloud coverage sensor state is not a number: {condition}"
-        self._cond_desc = f"({round(cloud)}%)"
-        self._sk = 10 ** (cloud / 100)
+        self._weather = f"({round(cloud)}%)"
+        self._divisor = 10 ** (cloud / 100)
         return None
 
     def _get_divisor_from_condition(self, condition: str) -> str | None:
@@ -430,8 +436,8 @@ class SolarIlluminanceSensor(SensorEntity):
         """
         for sk, conditions in MAPPING:
             if condition in conditions:
-                self._cond_desc = f"({condition})"
-                self._sk = sk
+                self._weather = f"({condition})"
+                self._divisor = sk
                 return None
         return f"Unexpected current condition: {condition}"
 
