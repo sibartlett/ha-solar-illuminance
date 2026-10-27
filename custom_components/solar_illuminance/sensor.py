@@ -4,7 +4,7 @@ A Sensor platform that estimates outdoor illuminance from current weather condit
 """
 
 from datetime import datetime, timedelta
-from enum import Enum, auto
+from enum import StrEnum
 import logging
 from math import asin, cos, exp, radians, sin
 from typing import Any
@@ -75,7 +75,7 @@ Num = float | int
 # snowy-heavy, tornado and hazy, and older AccuWeather integrations'
 # mostlycloudy. None of these clash with a standard condition.
 
-MAPPING: tuple[tuple[Num, tuple[str, ...]], ...] = (
+_DIVISOR_GROUPS: tuple[tuple[Num, tuple[str, ...]], ...] = (
     (
         10,
         (
@@ -102,6 +102,11 @@ MAPPING: tuple[tuple[Num, tuple[str, ...]], ...] = (
     (2, (ATTR_CONDITION_PARTLYCLOUDY, ATTR_CONDITION_WINDY_VARIANT, "hazy")),
     (1, (ATTR_CONDITION_SUNNY, ATTR_CONDITION_CLEAR_NIGHT, ATTR_CONDITION_WINDY)),
 )
+DIVISORS: dict[str, Num] = {
+    condition: divisor
+    for divisor, conditions in _DIVISOR_GROUPS
+    for condition in conditions
+}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,15 +114,15 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 
-class Mode(Enum):
+class Mode(StrEnum):
     """Illuminance mode."""
 
-    normal = auto()
-    simple = auto()
-    irradiance = auto()
+    normal = "normal"
+    simple = "simple"
+    irradiance = "irradiance"
 
 
-MODES = list(Mode.__members__)
+MODES = list(Mode)
 
 _20_MIN = timedelta(minutes=20)
 _40_MIN = timedelta(minutes=40)
@@ -176,20 +181,11 @@ def _cloud_coverage(value: Any) -> float | None:
         return None
 
 
-class SourceReports(Enum):
-    """What the weather data source reports."""
-
-    NOT_SEEN = "not seen yet"
-    CLOUD_COVERAGE = "cloud coverage"
-    CONDITIONS = "weather conditions"
-
-
 class SolarIlluminanceSensor(SensorEntity):
     """Solar Illuminance sensor."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
-    _source_reports = SourceReports.NOT_SEEN
     _divisor: Num
     _weather: str | None = None
     # The problem with the weather data last logged, if it hasn't been fixed.
@@ -201,7 +197,7 @@ class SolarIlluminanceSensor(SensorEntity):
         """Initialize sensor from the config entry's options."""
         options = entry.options
         self._weather_entity: str | None = options.get(CONF_ENTITY_ID)
-        self._mode = Mode[options[CONF_MODE]]
+        self._mode = Mode(options[CONF_MODE])
         self._fallback: float = options.get(
             CONF_FALLBACK, DEFAULT_FALLBACK if self._weather_entity else 1
         )
@@ -284,7 +280,6 @@ class SolarIlluminanceSensor(SensorEntity):
             "value": self.native_value,
             "weather": self._weather,
             "divisor": self._divisor,
-            "weather_source_reports": self._source_reports.value,
             "weather_unavailable_since": since.isoformat() if since else None,
         }
 
@@ -349,11 +344,11 @@ class SolarIlluminanceSensor(SensorEntity):
             return
         self._weather_unavailable_since = None
 
-        if self._source_reports is SourceReports.NOT_SEEN:
-            self._detect_entity_type(condition)
-
-        if self._source_reports == SourceReports.CLOUD_COVERAGE:
-            self._log_problem(self._get_divisor_from_cloud_coverage(condition))
+        # A sensor can report the cloud coverage percentage as its state.
+        if (cloud := _cloud_coverage(condition)) is not None:
+            self._weather = f"({round(cloud)}%)"
+            self._divisor = 10 ** (cloud / 100)
+            self._log_problem(None)
             return
 
         problem = self._get_divisor_from_condition(condition)
@@ -402,43 +397,16 @@ class SolarIlluminanceSensor(SensorEntity):
             key = None
         async_set_weather_source_issue(self.hass, self._entry_id, key, placeholders)
 
-    def _detect_entity_type(self, condition: str) -> None:
-        """Determine whether the input entity reports cloud coverage or conditions."""
-        try:
-            float(condition)
-        except ValueError:
-            self._source_reports = SourceReports.CONDITIONS
-        else:
-            self._source_reports = SourceReports.CLOUD_COVERAGE
-        _LOGGER.info(
-            "%s: %s reports %s",
-            self.entity_id,
-            self._weather_entity,
-            self._source_reports.value,
-        )
-
-    def _get_divisor_from_cloud_coverage(self, condition: str) -> str | None:
-        """Get divisor from a cloud coverage percentage.
-
-        Returns the problem, if the state isn't a number.
-        """
-        if (cloud := _cloud_coverage(condition)) is None:
-            return f"Cloud coverage sensor state is not a number: {condition}"
-        self._weather = f"({round(cloud)}%)"
-        self._divisor = 10 ** (cloud / 100)
-        return None
-
     def _get_divisor_from_condition(self, condition: str) -> str | None:
         """Get divisor from a weather condition.
 
         Returns the problem, if the condition isn't one of the expected ones.
         """
-        for sk, conditions in MAPPING:
-            if condition in conditions:
-                self._weather = f"({condition})"
-                self._divisor = sk
-                return None
-        return f"Unexpected current condition: {condition}"
+        if (divisor := DIVISORS.get(condition)) is None:
+            return f"Unexpected current condition: {condition}"
+        self._weather = f"({condition})"
+        self._divisor = divisor
+        return None
 
     def _calculate_illuminance(self, now: datetime) -> Num | None:
         """Calculate sunny illuminance, or None if it's nighttime in simple mode."""

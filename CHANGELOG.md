@@ -48,9 +48,10 @@ without it: the sensor follows the new ID.
 
 ### Weather data problems are logged once
 
-An unexpected weather condition, or a cloud coverage sensor that doesn't
-report a number, is now logged as a warning once, until it changes or is
-fixed. It used to be logged as an error each time the weather changed.
+An unexpected weather condition is now logged as a warning once, until it
+changes or is fixed. It used to be logged as an error each time the weather
+changed. A cloud coverage sensor whose state isn't a number is logged the
+same way, as an unexpected condition.
 
 ### Simple mode follows a change of location
 

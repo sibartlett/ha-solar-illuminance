@@ -312,8 +312,18 @@ async def test_cloud_coverage_not_a_number(
     hass.states.async_set(CLOUD_ENTITY_ID, "lots")
     await hass.async_block_till_done()
 
+    # It's taken to be a condition, and not one the sensor knows.
     assert _state(hass) == 1000
-    assert "Cloud coverage sensor state is not a number: lots" in caplog.text
+    assert "Unexpected current condition: lots" in caplog.text
+
+    hass.states.async_set(CLOUD_ENTITY_ID, "50")
+    await hass.async_block_till_done()
+    assert _state(hass) == 3162
+
+    # Fixed, so it's logged again if it happens again.
+    hass.states.async_set(CLOUD_ENTITY_ID, "lots")
+    await hass.async_block_till_done()
+    assert caplog.text.count("Unexpected current condition: lots") == 2
 
 
 @pytest.mark.usefixtures("noon")

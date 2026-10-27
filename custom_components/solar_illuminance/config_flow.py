@@ -1,11 +1,10 @@
 """Config flow for Solar Illuminance integration."""
 
-from abc import abstractmethod
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import (
     ConfigEntry,
-    ConfigEntryBaseFlow,
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
@@ -39,80 +38,44 @@ from .const import (
 )
 from .sensor import MODES
 
-
-class SolarIlluminanceFlow(ConfigEntryBaseFlow):
-    """Solar Illuminance flow mixin."""
-
-    @property
-    @abstractmethod
-    def options(self) -> dict[str, Any]:
-        """Return mutable copy of options."""
-
-    async def async_step_options(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Get sensor options."""
-        if user_input is not None:
-            self.options.clear()
-            self.options.update(user_input)
-            return await self.async_step_done()
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_MODE): SelectSelector(
-                    SelectSelectorConfig(options=MODES, translation_key="mode")
-                ),
-                vol.Required(CONF_SCAN_INTERVAL): NumberSelector(
-                    NumberSelectorConfig(
-                        min=MIN_SCAN_INTERVAL_MIN, step=0.5, mode=NumberSelectorMode.BOX
-                    )
-                ),
-                vol.Optional(CONF_ENTITY_ID): EntitySelector(
-                    EntitySelectorConfig(domain=["sensor", "weather"])
-                ),
-                vol.Optional(CONF_FALLBACK): NumberSelector(
-                    NumberSelectorConfig(
-                        min=1, max=10, step="any", mode=NumberSelectorMode.BOX
-                    )
-                ),
-            }
-        )
-        data_schema = self.add_suggested_values_to_schema(
-            data_schema,
-            {
-                CONF_MODE: self.options.get(CONF_MODE, MODES[0]),
-                CONF_SCAN_INTERVAL: self.options.get(
-                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MIN
-                ),
-            },
-        )
-        if (entity_id := self.options.get(CONF_ENTITY_ID)) is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, {CONF_ENTITY_ID: entity_id}
+OPTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_MODE): SelectSelector(
+            SelectSelectorConfig(options=MODES, translation_key="mode")
+        ),
+        vol.Required(CONF_SCAN_INTERVAL): NumberSelector(
+            NumberSelectorConfig(
+                min=MIN_SCAN_INTERVAL_MIN, step=0.5, mode=NumberSelectorMode.BOX
             )
-        if (fallback := self.options.get(CONF_FALLBACK)) is not None:
-            data_schema = self.add_suggested_values_to_schema(
-                data_schema, {CONF_FALLBACK: fallback}
-            )
-        return self.async_show_form(step_id="options", data_schema=data_schema)
-
-    @abstractmethod
-    async def async_step_done(
-        self, _: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Finish the flow."""
+        ),
+        vol.Optional(CONF_ENTITY_ID): EntitySelector(
+            EntitySelectorConfig(domain=["sensor", "weather"])
+        ),
+        vol.Optional(CONF_FALLBACK): NumberSelector(
+            NumberSelectorConfig(min=1, max=10, step="any", mode=NumberSelectorMode.BOX)
+        ),
+    }
+)
 
 
-class SolarIlluminanceConfigFlow(ConfigFlow, SolarIlluminanceFlow, domain=DOMAIN):
+def _suggested_options(options: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the values to show in the options form: the current ones, or defaults."""
+    suggested = {
+        CONF_MODE: options.get(CONF_MODE, MODES[0]),
+        CONF_SCAN_INTERVAL: options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MIN),
+    }
+    for key in (CONF_ENTITY_ID, CONF_FALLBACK):
+        if (value := options.get(key)) is not None:
+            suggested[key] = value
+    return suggested
+
+
+class SolarIlluminanceConfigFlow(ConfigFlow, domain=DOMAIN):
     """Solar Illuminance config flow."""
 
     VERSION = 1
 
     _name: str = DEFAULT_NAME
-
-    def __init__(self) -> None:
-        """Initialize config flow."""
-        self._options: dict[str, Any] = {}
 
     @staticmethod
     @callback
@@ -121,11 +84,6 @@ class SolarIlluminanceConfigFlow(ConfigFlow, SolarIlluminanceFlow, domain=DOMAIN
     ) -> SolarIlluminanceOptionsFlow:
         """Get the options flow for this handler."""
         return SolarIlluminanceOptionsFlow()
-
-    @property
-    def options(self) -> dict[str, Any]:
-        """Return mutable copy of options."""
-        return self._options
 
     async def async_step_user(
         self, _: dict[str, Any] | None = None
@@ -146,32 +104,38 @@ class SolarIlluminanceConfigFlow(ConfigFlow, SolarIlluminanceFlow, domain=DOMAIN
             step_id="name", data_schema=vol.Schema(schema), last_step=False
         )
 
-    async def async_step_done(
-        self, _: dict[str, Any] | None = None
+    async def async_step_options(
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Finish the flow."""
-        return self.async_create_entry(title=self._name, data={}, options=self.options)
+        """Get sensor options."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=self._name, data={}, options=user_input
+            )
+
+        return self.async_show_form(
+            step_id="options",
+            data_schema=self.add_suggested_values_to_schema(
+                OPTIONS_SCHEMA, _suggested_options({})
+            ),
+        )
 
 
-class SolarIlluminanceOptionsFlow(OptionsFlow, SolarIlluminanceFlow):
+class SolarIlluminanceOptionsFlow(OptionsFlow):
     """Solar Illuminance integration options flow."""
 
     init_step = "options"
 
-    def __init__(self) -> None:
-        """Initialize options flow."""
-        self._options: dict[str, Any] | None = None
-
-    @property
-    def options(self) -> dict[str, Any]:
-        """Return mutable copy of options."""
-        # The config entry is only available once the flow has started.
-        if self._options is None:
-            self._options = dict(self.config_entry.options)
-        return self._options
-
-    async def async_step_done(
-        self, _: dict[str, Any] | None = None
+    async def async_step_options(
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Finish the flow."""
-        return self.async_create_entry(title="", data=self.options)
+        """Change sensor options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="options",
+            data_schema=self.add_suggested_values_to_schema(
+                OPTIONS_SCHEMA, _suggested_options(self.config_entry.options)
+            ),
+        )

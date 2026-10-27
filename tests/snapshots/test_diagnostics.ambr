@@ -11,7 +11,6 @@
       'entity_id': 'sensor.solar_illuminance',
       'value': 19389,
       'weather': '(cloudy, 80%)',
-      'weather_source_reports': 'weather conditions',
       'weather_unavailable_since': None,
     }),
     'weather_source': dict({
@@ -36,7 +35,6 @@
       'entity_id': 'sensor.solar_illuminance',
       'value': 122334,
       'weather': 'without weather data',
-      'weather_source_reports': 'not seen yet',
       'weather_unavailable_since': None,
     }),
     'weather_source': None,
@@ -54,7 +52,6 @@
       'entity_id': 'sensor.solar_illuminance',
       'value': 12233,
       'weather': 'without weather data',
-      'weather_source_reports': 'not seen yet',
       'weather_unavailable_since': '2026-06-21T19:50:00+00:00',
     }),
     'weather_source': dict({
