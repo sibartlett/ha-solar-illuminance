@@ -192,7 +192,8 @@ class SolarIlluminanceSensor(SensorEntity):
     _entity_status = EntityStatus.NOT_SEEN
     _sk: Num
     _cond_desc: str | None = None
-    _warned = False
+    # The problem with the weather data last logged, if it hasn't been fixed.
+    _problem: str | None = None
     # When the weather data source stopped having weather data, if it has none.
     _weather_unavailable_since: datetime | None = None
     _sun_data: tuple[date, tuple[datetime, datetime, datetime, datetime]] | None = None
@@ -338,21 +339,20 @@ class SolarIlluminanceSensor(SensorEntity):
                 self._weather_unavailable_since = dt_util.utcnow()
             # While Home Assistant starts, the weather integration may not have
             # been set up yet.
-            if not self._warned and self.hass.is_running:
-                _LOGGER.warning("%s: Weather data not available", self.entity_id)
-                self._warned = True
+            if self.hass.is_running:
+                self._log_problem("Weather data not available")
             return
-        self._warned = False
         self._weather_unavailable_since = None
 
         if self._entity_status is EntityStatus.NOT_SEEN:
             self._detect_entity_type(condition)
 
         if self._entity_status == EntityStatus.OK_CLOUD:
-            self._get_divisor_from_cloud_coverage(condition)
+            self._log_problem(self._get_divisor_from_cloud_coverage(condition))
             return
 
-        matched = self._get_divisor_from_condition(condition)
+        problem = self._get_divisor_from_condition(condition)
+        self._log_problem(problem)
 
         # A weather entity's cloud coverage is more precise than its condition,
         # but the condition also reflects fog, rain and storms: use whichever is
@@ -364,9 +364,15 @@ class SolarIlluminanceSensor(SensorEntity):
         if cloud is None:
             return
         cloud_sk = 10 ** (cloud / 100)
-        if not matched or cloud_sk > self._sk:
+        if problem or cloud_sk > self._sk:
             self._cond_desc = f"({condition}, {round(cloud)}%)"
             self._sk = cloud_sk
+
+    def _log_problem(self, problem: str | None) -> None:
+        """Log a problem with the weather data once, until it changes or is fixed."""
+        if problem and problem != self._problem:
+            _LOGGER.warning("%s: %s", self.entity_id, problem)
+        self._problem = problem
 
     def _update_weather_source_issue(self) -> None:
         """Raise a repair if the weather data source is missing or unavailable."""
@@ -406,30 +412,28 @@ class SolarIlluminanceSensor(SensorEntity):
             self._entity_status.value,
         )
 
-    def _get_divisor_from_cloud_coverage(self, condition: str) -> None:
-        """Get divisor from a cloud coverage percentage."""
+    def _get_divisor_from_cloud_coverage(self, condition: str) -> str | None:
+        """Get divisor from a cloud coverage percentage.
+
+        Returns the problem, if the state isn't a number.
+        """
         if (cloud := _cloud_coverage(condition)) is None:
-            _LOGGER.error(
-                "%s: Cloud coverage sensor state is not a number: %s",
-                self.entity_id,
-                condition,
-            )
-            return
+            return f"Cloud coverage sensor state is not a number: {condition}"
         self._cond_desc = f"({round(cloud)}%)"
         self._sk = 10 ** (cloud / 100)
+        return None
 
-    def _get_divisor_from_condition(self, condition: str) -> bool:
+    def _get_divisor_from_condition(self, condition: str) -> str | None:
         """Get divisor from a weather condition.
 
-        Returns False if the condition isn't one of the expected ones.
+        Returns the problem, if the condition isn't one of the expected ones.
         """
         for sk, conditions in MAPPING:
             if condition in conditions:
                 self._cond_desc = f"({condition})"
                 self._sk = sk
-                return True
-        _LOGGER.error("%s: Unexpected current condition: %s", self.entity_id, condition)
-        return False
+                return None
+        return f"Unexpected current condition: {condition}"
 
     def _calculate_illuminance(self, now: datetime) -> Num | None:
         """Calculate sunny illuminance, or None if it's nighttime in simple mode."""

@@ -46,6 +46,12 @@ sensor uses its illuminance divider instead of the weather.
 Renaming the weather data source's entity ID no longer leaves the sensor
 without it: the sensor follows the new ID.
 
+### Weather data problems are logged once
+
+An unexpected weather condition, or a cloud coverage sensor that doesn't
+report a number, is now logged as a warning once, until it changes or is
+fixed. It used to be logged as an error each time the weather changed.
+
 ### Diagnostics
 
 Each sensor's diagnostics can be downloaded, to include when reporting a

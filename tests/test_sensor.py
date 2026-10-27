@@ -209,7 +209,23 @@ async def test_unexpected_condition(
 
     # The default fallback with a weather entity is 10.
     assert _state(hass) == 1000
-    assert "Unexpected current condition: bogus" in caplog.text
+    assert caplog.text.count("Unexpected current condition: bogus") == 1
+
+    # It's logged once, until the condition changes or is fixed.
+    hass.states.async_set(
+        WEATHER_ENTITY_ID, "bogus", {ATTR_ATTRIBUTION: "Met.no", "cloud_coverage": 50}
+    )
+    await hass.async_block_till_done()
+    assert _state(hass) == 3162
+    assert caplog.text.count("Unexpected current condition: bogus") == 1
+    hass.states.async_set(WEATHER_ENTITY_ID, "sunny", {ATTR_ATTRIBUTION: "Met.no"})
+    await hass.async_block_till_done()
+    hass.states.async_set(WEATHER_ENTITY_ID, "bogus", {ATTR_ATTRIBUTION: "Met.no"})
+    await hass.async_block_till_done()
+    assert caplog.text.count("Unexpected current condition: bogus") == 2
+    hass.states.async_set(WEATHER_ENTITY_ID, "weird", {ATTR_ATTRIBUTION: "Met.no"})
+    await hass.async_block_till_done()
+    assert "Unexpected current condition: weird" in caplog.text
 
 
 @pytest.mark.usefixtures("noon")
