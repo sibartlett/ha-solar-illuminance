@@ -1,4 +1,4 @@
-# <img src="custom_components/solar_illuminance/brand/icon.png" alt="Solar Illuminance Sensor" width="50" height="50"/> Solar Illuminance Sensor
+# <img src="custom_components/solar_illuminance/brand/icon.png" alt="Solar Illuminance" width="50" height="50"/> Solar Illuminance
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
 [![Release](https://img.shields.io/github/v/release/sibartlett/ha-solar-illuminance)](https://github.com/sibartlett/ha-solar-illuminance/releases)
@@ -7,16 +7,7 @@
 Estimates the outdoor illuminance from the sun's elevation, adjusted for the current weather conditions or cloud coverage from another, existing entity.
 
 Solar Illuminance is a fork of [Illuminance](https://github.com/pnbruckner/ha-illuminance) by [Phil Bruckner](https://github.com/pnbruckner), renamed so the two can be installed side by side.
-
-### Moving from Illuminance
-
-Solar Illuminance doesn't take over Illuminance's sensors. To move to it:
-
-1. Install Solar Illuminance, and add your sensors again with the same options. There are no modes: the value always follows the sun's elevation, as in Illuminance's normal mode. If you used simple mode, its values were different, so check the levels your automations use. If you used irradiance mode, enable the irradiance sensor.
-1. Point your automations, scripts and dashboards at the new sensors' entity IDs.
-1. Remove Illuminance.
-
-Or, to keep an entity ID, remove the Illuminance sensor first, then give the new sensor its entity ID in the sensor's settings. Automations, scripts and dashboards then carry on using it.
+Coming from Illuminance? See [Moving from Illuminance](#moving-from-illuminance).
 
 ## Use cases
 
@@ -24,6 +15,54 @@ Or, to keep an entity ID, remove the Illuminance sensor first, then give the new
 - Close blinds or awnings when the sun is strong.
 - Compare it with an indoor light sensor, to tell whether a room is dark because it's dark outside.
 
+## Installation
+
+The integration software must first be installed as a custom component.
+You can use HACS to manage the installation and provide update notifications.
+Or you can manually install the software.
+
+<details>
+<summary>With HACS</summary>
+
+1. Add this repo as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/):
+   It should then appear as a new integration. Click on it. If necessary, search for "solar illuminance".
+   ```text
+   https://github.com/sibartlett/ha-solar-illuminance
+   ```
+   Or use this button:
+  
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sibartlett&repository=ha-solar-illuminance&category=integration)
+
+1. Download the integration using the appropriate button.
+1. Restart Home Assistant.
+
+</details>
+
+<details>
+<summary>Manual Installation</summary>
+
+Download `solar_illuminance.zip` from the [latest release](https://github.com/sibartlett/ha-solar-illuminance/releases/latest),
+and unzip it into `<config>/custom_components/solar_illuminance`,
+where `<config>` is your Home Assistant configuration directory. Then restart Home Assistant.
+
+</details>
+
+### Versions
+
+This custom integration supports Home Assistant 2026.7 or newer.
+
+## Configuration
+
+Add sensors in the UI: go to **Settings** -> **Devices & services** -> **Add integration** and search for "Solar Illuminance". Each sensor has the following options. All but the name can be changed later with **Configure**; rename the sensors by renaming their entry.
+
+Option | Description
+-|-
+Name | Name of the entry, and so of its device and sensors. Default is `Solar`.
+Update period in minutes | How often the sensor updates. Minimum is 0.5 (30 seconds). Default is 5.
+Weather data source | Optional entity that indicates current weather conditions or cloud coverage percentage.
+Illuminance divider when no weather data | Divisor to use when weather data is not available. Must be in the range of 1 (clear) through 10 (dark). Default is 10 if a weather data source is selected, or 1 if not.
+
+YAML configuration is not supported.
 
 ## Sensors
 
@@ -74,55 +113,6 @@ A cloud coverage percentage gives a divisor of 10<sup>coverage ÷ 100</sup>: 1 w
 If a weather entity reports both, the larger divisor is used, so the value reflects whichever indicates it's darker.
 
 Without weather data, or with a condition the integration doesn't know and no cloud coverage, the illuminance divider option is used instead.
-
-## Installation
-
-The integration software must first be installed as a custom component.
-You can use HACS to manage the installation and provide update notifications.
-Or you can manually install the software.
-
-<details>
-<summary>With HACS</summary>
-
-1. Add this repo as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/):
-   It should then appear as a new integration. Click on it. If necessary, search for "solar illuminance".
-   ```text
-   https://github.com/sibartlett/ha-solar-illuminance
-   ```
-   Or use this button:
-  
-   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sibartlett&repository=ha-solar-illuminance&category=integration)
-
-1. Download the integration using the appropriate button.
-1. Restart Home Assistant.
-
-</details>
-
-<details>
-<summary>Manual Installation</summary>
-
-Download `solar_illuminance.zip` from the [latest release](https://github.com/sibartlett/ha-solar-illuminance/releases/latest),
-and unzip it into `<config>/custom_components/solar_illuminance`,
-where `<config>` is your Home Assistant configuration directory. Then restart Home Assistant.
-
-</details>
-
-### Versions
-
-This custom integration supports Home Assistant 2026.7 or newer.
-
-## Configuration
-
-Add sensors in the UI: go to **Settings** -> **Devices & services** -> **Add integration** and search for "Solar Illuminance". Each sensor has the following options. All but the name can be changed later with **Configure**; rename the sensors by renaming their entry.
-
-Option | Description
--|-
-Name | Name of the entry, and so of its device and sensors. Default is `Solar`.
-Update period in minutes | How often the sensor updates. Minimum is 0.5 (30 seconds). Default is 5.
-Weather data source | Optional entity that indicates current weather conditions or cloud coverage percentage.
-Illuminance divider when no weather data | Divisor to use when weather data is not available. Must be in the range of 1 (clear) through 10 (dark). Default is 10 if a weather data source is selected, or 1 if not.
-
-YAML configuration is not supported.
 
 ## How the value updates
 
@@ -178,6 +168,16 @@ A clear day reaches about 150,000 lx, and the weather divides that, so pick leve
 - **The value doesn't change with the weather.** Check the weather data source's state in **Tools** -> **States** (**Developer tools** before Home Assistant 2026.8). If it's unavailable, the sensor uses the illuminance divider instead. If it has had no weather data for an hour, or no longer exists, Home Assistant shows a repair in **Settings** -> **Repairs**.
 - **The log says "Unexpected current condition".** The weather data source reported a condition the integration doesn't know. The sensor uses the source's cloud coverage if it has one, or the illuminance divider if not. Please [open an issue](https://github.com/sibartlett/ha-solar-illuminance/issues) with the condition and the weather integration.
 - **The value seems wrong.** Download the sensor's diagnostics from its entry's menu, in **Settings** -> **Devices & services** -> **Solar Illuminance**. They show the weather used and the divisor. To see each update in the log, enable debug logging from the menu at the top of that page. Include both when reporting a problem.
+
+## Moving from Illuminance
+
+Solar Illuminance doesn't take over Illuminance's sensors. To move to it:
+
+1. Install Solar Illuminance, and add your sensors again with the same options. There are no modes: the value always follows the sun's elevation, as in Illuminance's normal mode. If you used simple mode, its values were different, so check the levels your automations use. If you used irradiance mode, enable the irradiance sensor.
+1. Point your automations, scripts and dashboards at the new sensors' entity IDs.
+1. Remove Illuminance.
+
+Or, to keep an entity ID, remove the Illuminance sensor first, then give the new sensor its entity ID in the sensor's settings. Automations, scripts and dashboards then carry on using it.
 
 ## Removal
 
