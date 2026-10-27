@@ -1,4 +1,4 @@
-# <img src="custom_components/solar_illuminance/brand/icon.png" alt="Solar Illuminance" width="50" height="50"/> Solar Illuminance
+# <img src="https://raw.githubusercontent.com/sibartlett/ha-solar-illuminance/master/custom_components/solar_illuminance/brand/icon.png" alt="Solar Illuminance" width="50" height="50"/> Solar Illuminance
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
 [![Release](https://img.shields.io/github/v/release/sibartlett/ha-solar-illuminance)](https://github.com/sibartlett/ha-solar-illuminance/releases)
@@ -75,7 +75,7 @@ They use an algorithm from the US Naval Observatory[^1] for estimating sun illum
 Below is an example of what the illuminance might look like over a three day period.
 
 <p align="center">
-  <img src="images/normal.png" alt="The illuminance over three days, rising and falling with the sun">
+  <img src="https://raw.githubusercontent.com/sibartlett/ha-solar-illuminance/master/images/normal.png" alt="The illuminance over three days, rising and falling with the sun">
 </p>
 
 [^1]: Janiczek, P. M., and DeYoung, J. A. _Computer Programs for Sun and Moon Illuminance With Contingent Tables and Diagrams_. Circular No. 171. Washington, D. C.: United States Naval Observatory, 1987 [Google Scholar](https://scholar.google.com/scholar_lookup?title=Computer%20programs%20for%20sun%20and%20moon%20illuminance%20with%20contingent%20tables%20and%20diagrams&author=P.%20M.%20Janiczek&author=J.%20A.%20Deyoung&publication_year=1987&book=Computer%20programs%20for%20sun%20and%20moon%20illuminance%20with%20contingent%20tables%20and%20diagrams)
@@ -187,4 +187,4 @@ Or, to keep an entity ID, remove the Illuminance sensor first, then give the new
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md).
+See [CHANGELOG.md](https://github.com/sibartlett/ha-solar-illuminance/blob/master/CHANGELOG.md).
