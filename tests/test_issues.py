@@ -3,7 +3,11 @@
 from datetime import timedelta
 
 from freezegun.api import FrozenDateTimeFactory
-from homeassistant.const import ATTR_ATTRIBUTION, STATE_UNAVAILABLE
+from homeassistant.const import (
+    ATTR_ATTRIBUTION,
+    EVENT_HOMEASSISTANT_STARTED,
+    STATE_UNAVAILABLE,
+)
 from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 import pytest
@@ -112,9 +116,10 @@ async def test_while_starting(
     await setup_entry(entity_id=WEATHER_ENTITY_ID)
     assert _issues(issue_registry) == {}
 
-    # Once started, the sensor's next update raises it.
+    # It's raised as soon as Home Assistant has started.
     hass.set_state(CoreState.running)
-    await _wait(hass, noon, 5)
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    await hass.async_block_till_done()
     assert list(_issues(issue_registry)) == [MISSING]
 
 

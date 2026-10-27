@@ -57,6 +57,7 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
 )
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.sun import get_astral_observer
 import homeassistant.util.dt as dt_util
 
@@ -223,6 +224,17 @@ class SolarIlluminanceSensor(SensorEntity):
             self.hass.states.get(self._weather_entity) if self._weather_entity else None
         )
         await self.async_update()
+
+        # A repair isn't raised while Home Assistant starts, so check as soon
+        # as it has, rather than at the next update.
+        if not self.hass.is_running:
+
+            @callback
+            def started(hass: HomeAssistant) -> None:
+                """Raise a repair, now the weather data source has had time to start."""
+                self._update_weather_source_issue()
+
+            self.async_on_remove(async_at_started(self.hass, started))
 
         @callback
         def scheduled_update(now: datetime) -> None:
