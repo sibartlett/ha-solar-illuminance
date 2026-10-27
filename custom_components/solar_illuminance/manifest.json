@@ -1,7 +1,6 @@
 {
   "domain": "solar_illuminance",
   "name": "Solar Illuminance",
-  "categories": ["helpers.calculate_value", "sensors"],
   "codeowners": ["@sibartlett"],
   "config_flow": true,
   "dependencies": [],
