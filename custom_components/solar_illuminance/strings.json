@@ -51,7 +51,7 @@
   "issues": {
     "weather_source_missing": {
       "title": "{name}'s weather data source is missing",
-      "description": "**{name}** uses `{entity_id}` as its weather data source, but there's no such entity: it may have been deleted, or its entity ID changed.\n\nUntil then, the sensor uses its illuminance divider instead of the weather. Choose another source, or none, with **Configure** on the Solar Illuminance integration's page."
+      "description": "**{name}** uses `{entity_id}` as its weather data source, but there's no such entity: it may have been deleted, or added again with another entity ID.\n\nIn the meantime, the sensor uses its illuminance divider instead of the weather. Choose another source, or none, with **Configure** on the Solar Illuminance integration's page."
     },
     "weather_source_unavailable": {
       "title": "{name} has no weather data",
