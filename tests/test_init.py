@@ -19,14 +19,19 @@ from .conftest import ENTITY_ID, SetupEntry
 
 @pytest.mark.usefixtures("noon")
 async def test_yaml_not_supported(
-    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    issue_registry: ir.IssueRegistry,
 ) -> None:
-    """Test YAML configuration is reported, not set up."""
+    """Test YAML configuration is reported, with a repair, not set up."""
     assert await async_setup_component(hass, DOMAIN, {DOMAIN: [{"name": "Garden"}]})
     await hass.async_block_till_done()
 
     assert hass.config_entries.async_entries(DOMAIN) == []
     assert "does not support YAML setup" in caplog.text
+    assert issue_registry.async_get_issue(
+        "homeassistant", f"config_entry_only_{DOMAIN}"
+    )
 
 
 async def test_location_changes(
