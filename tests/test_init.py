@@ -45,6 +45,24 @@ async def test_location_changes(
     assert float(hass.states.get(ENTITY_ID).state) < 10000
 
 
+async def test_location_changes_simple_mode(
+    hass: HomeAssistant, setup_entry: SetupEntry, noon: FrozenDateTimeFactory
+) -> None:
+    """Test simple mode's sunrise and sunset follow Home Assistant's location."""
+    await setup_entry(mode="simple")
+    assert hass.states.get(ENTITY_ID).state == "10000"
+
+    # In London, it's dusk.
+    await hass.config.async_update(
+        latitude=51.5, longitude=-0.1, time_zone="Europe/London"
+    )
+    noon.tick(timedelta(minutes=5))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert hass.states.get(ENTITY_ID).state == "7675"
+
+
 @pytest.mark.usefixtures("noon")
 async def test_unload(hass: HomeAssistant, setup_entry: SetupEntry) -> None:
     """Test unloading a config entry."""

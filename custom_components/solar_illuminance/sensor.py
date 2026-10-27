@@ -3,7 +3,7 @@
 A Sensor platform that estimates outdoor illuminance from current weather conditions.
 """
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from enum import Enum, auto
 import logging
 from math import asin, cos, exp, radians, sin
@@ -196,7 +196,6 @@ class SolarIlluminanceSensor(SensorEntity):
     _problem: str | None = None
     # When the weather data source stopped having weather data, if it has none.
     _weather_unavailable_since: datetime | None = None
-    _sun_data: tuple[date, tuple[datetime, datetime, datetime, datetime]] | None = None
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize sensor from the config entry's options."""
@@ -457,20 +456,15 @@ class SolarIlluminanceSensor(SensorEntity):
         """Calculate sun factor."""
         now_date = dt_util.as_local(now).date()
 
-        if self._sun_data and self._sun_data[0] == now_date:
-            (sunrise_begin, sunrise_end, sunset_begin, sunset_end) = self._sun_data[1]
-        else:
-            observer = get_astral_observer(self.hass)
-            sunrise: datetime = astral.sun.sunrise(observer, now_date)
-            sunset: datetime = astral.sun.sunset(observer, now_date)
-            sunrise_begin = sunrise - _20_MIN
-            sunrise_end = sunrise + _40_MIN
-            sunset_begin = sunset - _40_MIN
-            sunset_end = sunset + _20_MIN
-            self._sun_data = (
-                now_date,
-                (sunrise_begin, sunrise_end, sunset_begin, sunset_end),
-            )
+        # Worked out each time, so they follow changes to Home Assistant's
+        # location and time zone.
+        observer = get_astral_observer(self.hass)
+        sunrise: datetime = astral.sun.sunrise(observer, now_date)
+        sunset: datetime = astral.sun.sunset(observer, now_date)
+        sunrise_begin = sunrise - _20_MIN
+        sunrise_end = sunrise + _40_MIN
+        sunset_begin = sunset - _40_MIN
+        sunset_end = sunset + _20_MIN
 
         if sunrise_end < now < sunset_begin:
             # Daytime

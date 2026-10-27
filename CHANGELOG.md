@@ -52,6 +52,12 @@ An unexpected weather condition, or a cloud coverage sensor that doesn't
 report a number, is now logged as a warning once, until it changes or is
 fixed. It used to be logged as an error each time the weather changed.
 
+### Simple mode follows a change of location
+
+In simple mode, changing Home Assistant's location or time zone used to
+leave the sensor using the old sunrise and sunset until the next day. It
+now uses the new ones straight away.
+
 ### Diagnostics
 
 Each sensor's diagnostics can be downloaded, to include when reporting a
