@@ -4,8 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/sibartlett/ha-solar-illuminance)](https://github.com/sibartlett/ha-solar-illuminance/releases)
 [![Tests](https://github.com/sibartlett/ha-solar-illuminance/actions/workflows/tests.yml/badge.svg)](https://github.com/sibartlett/ha-solar-illuminance/actions/workflows/tests.yml)
 
-Creates a `sensor` entity that estimates outdoor illuminance based on either sun elevation or time of day.
-In either case, the value can be further adjusted based on current weather conditions or cloud coverage obtained from another, existing entity.
+Estimates the outdoor illuminance from the sun's elevation, adjusted for the current weather conditions or cloud coverage from another, existing entity.
 
 Solar Illuminance is a fork of [Illuminance](https://github.com/pnbruckner/ha-illuminance) by [Phil Bruckner](https://github.com/pnbruckner), renamed so the two can be installed side by side.
 
@@ -13,38 +12,34 @@ Solar Illuminance is a fork of [Illuminance](https://github.com/pnbruckner/ha-il
 
 Solar Illuminance doesn't take over Illuminance's sensors. To move to it:
 
-1. Install Solar Illuminance, and add your sensors again with the same options.
+1. Install Solar Illuminance, and add your sensors again with the same options. There are no modes: the value always follows the sun's elevation, as in Illuminance's normal mode. If you used simple mode, its values were different, so check the levels your automations use. If you used irradiance mode, enable the irradiance sensor.
 1. Point your automations, scripts and dashboards at the new sensors' entity IDs.
 1. Remove Illuminance.
 
-Or, to keep the same entity IDs, remove Illuminance's sensors first, then add the new sensors with the same names. Automations, scripts and dashboards then carry on using them.
+Or, to keep an entity ID, remove the Illuminance sensor first, then give the new sensor its entity ID in the sensor's settings. Automations, scripts and dashboards then carry on using it.
 
 ## Use cases
 
 - Turn lights on when it gets dark outside, and off when it's bright, without an outdoor light sensor. Unlike sunset and sunrise, the value is lower on a dark, stormy day.
-- Close blinds or awnings when the sun is strong, using the irradiance mode.
+- Close blinds or awnings when the sun is strong.
 - Compare it with an indoor light sensor, to tell whether a room is dark because it's dark outside.
 
 
-## Modes of operation
-Three modes are available: normal, irradiance & simple.
+## Sensors
 
-### Normal/Irradiance modes - Sun elevation
-These modes use an algorithm from the US Naval Observatory[^1] for estimating sun illuminance or irradiance based on the sun's elevation (aka altitude.) The maximum illuminance value is about 150,000 lx, and the maximum irradiance value is about 1,250 W/m².
+Each entry has two sensors, on a device named after the entry:
+
+- **Illuminance**, in lx. For an entry named "Solar", it's "Solar Illuminance".
+- **Irradiance**, the same estimate in W/m². It's disabled to begin with: enable it in the sensor's settings if you need it, for example to compare with a weather station's solar radiation.
+
+They use an algorithm from the US Naval Observatory[^1] for estimating sun illuminance based on the sun's elevation (aka altitude). The maximum illuminance value is about 150,000 lx, which is about 1,250 W/m².
 Below is an example of what the illuminance might look like over a three day period.
 
 <p align="center">
-  <img src=images/normal.png>
+  <img src="images/normal.png" alt="The illuminance over three days, rising and falling with the sun">
 </p>
 
 [^1]: Janiczek, P. M., and DeYoung, J. A. _Computer Programs for Sun and Moon Illuminance With Contingent Tables and Diagrams_. Circular No. 171. Washington, D. C.: United States Naval Observatory, 1987 [Google Scholar](https://scholar.google.com/scholar_lookup?title=Computer%20programs%20for%20sun%20and%20moon%20illuminance%20with%20contingent%20tables%20and%20diagrams&author=P.%20M.%20Janiczek&author=J.%20A.%20Deyoung&publication_year=1987&book=Computer%20programs%20for%20sun%20and%20moon%20illuminance%20with%20contingent%20tables%20and%20diagrams)
-
-### Simple mode - Time of day
-At night the value is 10 lx. From a little before sunrise to a little after the value is ramped up to whatever the current conditions indicate. The same happens around sunset, except the value is ramped down. For historical reasons, the maximum value is 10,000 lx. Below is an example of what that might look like over a three day period.
-
-<p align="center">
-  <img src=images/simple.png>
-</p>
 
 ## Supported weather sources
 Any weather entity that uses the [standard list of conditions](https://www.home-assistant.io/integrations/weather/#condition-mapping), or any sensor that provides a cloud coverage percentage, should work with this integration.
@@ -63,7 +58,7 @@ Any integration | A `sensor` whose state is the cloud coverage, from 0 to 100%
 
 ### How the weather changes the value
 
-In every mode, the value without weather is divided by a number from 1 (clear) to 10 (dark).
+The value without weather is divided by a number from 1 (clear) to 10 (dark).
 
 Each weather condition has its own divisor:
 
@@ -118,12 +113,11 @@ This custom integration supports Home Assistant 2026.7 or newer.
 
 ## Configuration
 
-Add sensors in the UI: go to **Settings** -> **Devices & services** -> **Add integration** and search for "Solar Illuminance". Each sensor has the following options. All but the name can be changed later with **Configure**; rename the sensor by renaming its entry.
+Add sensors in the UI: go to **Settings** -> **Devices & services** -> **Add integration** and search for "Solar Illuminance". Each sensor has the following options. All but the name can be changed later with **Configure**; rename the sensors by renaming their entry.
 
 Option | Description
 -|-
-Name | Name of the sensor. Default is `Solar Illuminance`.
-Mode | `Normal` (default) uses sun elevation, `Simple` uses time of day, and `Irradiance` is the same as `Normal`, except the value is expressed as irradiance in W/m².
+Name | Name of the entry, and so of its device and sensors. Default is `Solar`.
 Update period in minutes | How often the sensor updates. Minimum is 0.5 (30 seconds). Default is 5.
 Weather data source | Optional entity that indicates current weather conditions or cloud coverage percentage.
 Illuminance divider when no weather data | Divisor to use when weather data is not available. Must be in the range of 1 (clear) through 10 (dark). Default is 10 if a weather data source is selected, or 1 if not.
@@ -169,15 +163,15 @@ actions:
       entity_id: light.porch
 ```
 
-These levels suit normal mode, where a clear day reaches about 150,000 lx. In simple mode the value is never more than 10,000 lx, and the weather divides both, so pick levels by watching the sensor's history for a few days.
+A clear day reaches about 150,000 lx, and the weather divides that, so pick levels by watching the sensor's history for a few days.
 
 ## Known limitations
 
 - The value is an estimate of the light outdoors in the open, not a measurement. It doesn't take into account shade, the direction a window faces, or the moon.
+- The irradiance is the illuminance divided by 120 lx per W/m², a rough average for sunlight. For solar power, use a solar forecast integration instead.
 - All sensors use Home Assistant's home location.
 - Weather conditions only give a few levels of brightness. A weather data source that also reports cloud coverage gives a smoother value.
 - The value can only be as current as the weather data source, which may update only every hour or so.
-- In simple mode, the value is never more than 10,000 lx, and is 10 lx at night.
 
 ## Troubleshooting
 

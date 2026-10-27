@@ -9,7 +9,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.const import CONF_ENTITY_ID, CONF_MODE, CONF_NAME, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_ENTITY_ID, CONF_NAME, CONF_SCAN_INTERVAL
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     EntitySelector,
@@ -17,8 +17,6 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
-    SelectSelector,
-    SelectSelectorConfig,
     TextSelector,
 )
 
@@ -36,13 +34,9 @@ from .const import (
     DOMAIN,
     MIN_SCAN_INTERVAL_MIN,
 )
-from .sensor import MODES
 
 OPTIONS_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_MODE): SelectSelector(
-            SelectSelectorConfig(options=MODES, translation_key="mode")
-        ),
         vol.Required(CONF_SCAN_INTERVAL): NumberSelector(
             NumberSelectorConfig(
                 min=MIN_SCAN_INTERVAL_MIN, step=0.5, mode=NumberSelectorMode.BOX
@@ -61,7 +55,6 @@ OPTIONS_SCHEMA = vol.Schema(
 def _suggested_options(options: Mapping[str, Any]) -> dict[str, Any]:
     """Return the values to show in the options form: the current ones, or defaults."""
     suggested = {
-        CONF_MODE: options.get(CONF_MODE, MODES[0]),
         CONF_SCAN_INTERVAL: options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MIN),
     }
     for key in (CONF_ENTITY_ID, CONF_FALLBACK):

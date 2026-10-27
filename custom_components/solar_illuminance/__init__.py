@@ -9,6 +9,7 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.event import async_track_entity_registry_updated_event
 
 from .const import DOMAIN
+from .coordinator import SolarIlluminanceConfigEntry, SolarIlluminanceCoordinator
 
 # Sensors are set up in the UI; YAML configuration is reported as an error.
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -23,9 +24,14 @@ async def entry_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: SolarIlluminanceConfigEntry
+) -> bool:
     """Set up config entry."""
     entry.async_on_unload(entry.add_update_listener(entry_updated))
+    coordinator = SolarIlluminanceCoordinator(hass, entry)
+    await coordinator.async_start()
+    entry.runtime_data = coordinator
     if weather_entity := entry.options.get(CONF_ENTITY_ID):
         entry.async_on_unload(
             async_track_entity_registry_updated_event(
@@ -55,6 +61,10 @@ def _async_follow_rename(
     return follow_rename
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: SolarIlluminanceConfigEntry
+) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        entry.runtime_data.async_stop()
+    return unloaded

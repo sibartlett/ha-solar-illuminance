@@ -45,24 +45,6 @@ async def test_location_changes(
     assert float(hass.states.get(ENTITY_ID).state) < 10000
 
 
-async def test_location_changes_simple_mode(
-    hass: HomeAssistant, setup_entry: SetupEntry, noon: FrozenDateTimeFactory
-) -> None:
-    """Test simple mode's sunrise and sunset follow Home Assistant's location."""
-    await setup_entry(mode="simple")
-    assert hass.states.get(ENTITY_ID).state == "10000"
-
-    # In London, it's dusk.
-    await hass.config.async_update(
-        latitude=51.5, longitude=-0.1, time_zone="Europe/London"
-    )
-    noon.tick(timedelta(minutes=5))
-    async_fire_time_changed(hass)
-    await hass.async_block_till_done()
-
-    assert hass.states.get(ENTITY_ID).state == "7675"
-
-
 @pytest.mark.usefixtures("noon")
 async def test_unload(hass: HomeAssistant, setup_entry: SetupEntry) -> None:
     """Test unloading a config entry."""
@@ -85,15 +67,15 @@ async def test_update_while_unrecoverable(hass: HomeAssistant) -> None:
 
 @pytest.mark.usefixtures("noon")
 async def test_rename(hass: HomeAssistant, setup_entry: SetupEntry) -> None:
-    """Test renaming a config entry renames its sensor."""
+    """Test renaming a config entry renames its sensors."""
     entry = await setup_entry(title="Garden")
 
     hass.config_entries.async_update_entry(entry, title="Back Garden")
     await hass.async_block_till_done()
 
-    state = hass.states.get("sensor.garden")
+    state = hass.states.get("sensor.garden_illuminance")
     assert state is not None
-    assert state.name == "Back Garden"
+    assert state.name == "Back Garden Illuminance"
 
 
 @pytest.mark.usefixtures("noon")
@@ -129,3 +111,17 @@ async def test_weather_entity_renamed(
     entity_registry.async_update_entity(other.entity_id, new_entity_id="weather.other")
     await hass.async_block_till_done()
     assert entry.options["entity_id"] == "weather.garden"
+
+
+@pytest.mark.usefixtures("noon")
+@pytest.mark.parametrize("mode", ["normal", "simple", "irradiance"])
+async def test_old_mode_option(
+    hass: HomeAssistant, setup_entry: SetupEntry, mode: str
+) -> None:
+    """Test an entry from before the irradiance sensor, with a mode, still works.
+
+    The mode is ignored: the illuminance sensor is always in lx.
+    """
+    await setup_entry(mode=mode)
+
+    assert hass.states.get(ENTITY_ID).state == "122334"

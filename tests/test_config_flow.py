@@ -1,14 +1,7 @@
 """Tests for the Solar Illuminance config and options flows."""
 
 from homeassistant.config_entries import SOURCE_USER
-from homeassistant.const import (
-    ATTR_UNIT_OF_MEASUREMENT,
-    CONF_ENTITY_ID,
-    CONF_MODE,
-    CONF_NAME,
-    CONF_SCAN_INTERVAL,
-    UnitOfIrradiance,
-)
+from homeassistant.const import CONF_ENTITY_ID, CONF_NAME, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
@@ -34,7 +27,6 @@ async def test_user_flow(hass: HomeAssistant) -> None:
     assert result["step_id"] == "options"
 
     options = {
-        CONF_MODE: "simple",
         CONF_SCAN_INTERVAL: 2.5,
         CONF_ENTITY_ID: WEATHER_ENTITY_ID,
         CONF_FALLBACK: 3,
@@ -46,13 +38,15 @@ async def test_user_flow(hass: HomeAssistant) -> None:
     assert result["title"] == "Garden"
     assert result["data"] == {}
     assert result["options"] == options
-    assert hass.states.get("sensor.garden") is not None
+    assert hass.states.get("sensor.garden_illuminance") is not None
 
 
 @pytest.mark.usefixtures("noon")
 async def test_options_flow(hass: HomeAssistant, setup_entry: SetupEntry) -> None:
     """Test changing a sensor's options reloads it."""
     entry = await setup_entry(entity_id=WEATHER_ENTITY_ID, fallback=3)
+    # Without weather data, the divider is used.
+    assert hass.states.get(ENTITY_ID).state == "40778"
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.FORM
@@ -64,13 +58,12 @@ async def test_options_flow(hass: HomeAssistant, setup_entry: SetupEntry) -> Non
         if key.description
     }
     assert suggested == {
-        CONF_MODE: "normal",
         CONF_SCAN_INTERVAL: 5,
         CONF_ENTITY_ID: WEATHER_ENTITY_ID,
         CONF_FALLBACK: 3,
     }
 
-    options = {CONF_MODE: "irradiance", CONF_SCAN_INTERVAL: 1}
+    options = {CONF_SCAN_INTERVAL: 1}
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], options
     )
@@ -78,9 +71,5 @@ async def test_options_flow(hass: HomeAssistant, setup_entry: SetupEntry) -> Non
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options == options
-    state = hass.states.get(ENTITY_ID)
-    assert state is not None
-    assert (
-        state.attributes[ATTR_UNIT_OF_MEASUREMENT]
-        == UnitOfIrradiance.WATTS_PER_SQUARE_METER
-    )
+    # Without a weather data source, the default divider is 1.
+    assert hass.states.get(ENTITY_ID).state == "122334"

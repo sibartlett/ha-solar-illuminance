@@ -9,9 +9,7 @@ rules:
       The value is calculated, every 5 minutes by default, which the user can
       change, and whenever the weather data source changes.
   brands: done
-  common-modules:
-    status: exempt
-    comment: There's one entity and no coordinator, so nothing to share.
+  common-modules: done
   config-flow: done
   config-flow-test-coverage: done
   dependency-transparency:
@@ -44,8 +42,8 @@ rules:
   unique-config-entry:
     status: exempt
     comment: |
-      Each entry is a sensor, and there can be several, for example with
-      different modes or weather data sources.
+      Each entry is an estimate, and there can be several, for example with
+      different weather data sources.
 
   # Silver
   action-exceptions:
@@ -63,7 +61,7 @@ rules:
   log-when-unavailable:
     status: exempt
     comment: |
-      The sensor is never unavailable. It logs a warning once when its weather
+      The sensors are never unavailable. A warning is logged once when the weather
       data source has no weather data.
   parallel-updates: done
   reauthentication-flow:
@@ -91,23 +89,23 @@ rules:
   docs-use-cases: done
   dynamic-devices:
     status: exempt
-    comment: Each entry has one device, for its sensor.
+    comment: Each entry has one device, for its sensors.
   entity-category:
     status: exempt
-    comment: The sensor is the integration's primary entity.
+    comment: Both sensors are the integration's primary entities.
   entity-device-class: done
   entity-disabled-by-default:
-    status: exempt
-    comment: The sensor is the integration's only entity.
+    status: done
+    comment: The irradiance sensor, which most people don't need.
   entity-translations:
-    status: exempt
-    comment: The sensor is named after its device, the entry.
+    status: done
+    comment: The sensors are named after their device class, which is translated.
   exception-translations:
     status: exempt
     comment: The integration raises no exceptions for the user.
   icon-translations:
     status: exempt
-    comment: The sensor uses its device class's icon.
+    comment: The sensors use their device classes' icons.
   reconfiguration-flow:
     status: exempt
     comment: Every setting can be changed in the options flow.

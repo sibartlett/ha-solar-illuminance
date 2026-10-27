@@ -14,17 +14,15 @@ from custom_components.solar_illuminance.const import DOMAIN
 from .conftest import SetupEntry
 
 
-@pytest.mark.usefixtures("noon")
-@pytest.mark.parametrize("mode", ["normal", "irradiance", "simple"])
+@pytest.mark.usefixtures("noon", "enable_irradiance")
 async def test_entities(
     hass: HomeAssistant,
     setup_entry: SetupEntry,
     entity_registry: er.EntityRegistry,
     snapshot: SnapshotAssertion,
-    mode: str,
 ) -> None:
-    """Test the sensor in each mode."""
-    entry = await setup_entry(mode=mode)
+    """Test the illuminance and irradiance sensors."""
+    entry = await setup_entry()
 
     await snapshot_platform(hass, entity_registry, snapshot, entry.entry_id)
 
@@ -35,7 +33,7 @@ async def test_device(
     setup_entry: SetupEntry,
     device_registry: dr.DeviceRegistry,
 ) -> None:
-    """Test each sensor has a service device named after it.
+    """Test each entry has a service device named after it, with both sensors.
 
     Not a snapshot: the device registry's fields differ between the Home
     Assistant versions tested.
@@ -46,4 +44,17 @@ async def test_device(
     assert device.identifiers == {(DOMAIN, entry.entry_id)}
     assert device.name == "Garden"
     assert device.entry_type is dr.DeviceEntryType.SERVICE
-    assert hass.states.get("sensor.garden") is not None
+    assert hass.states.get("sensor.garden_illuminance").name == "Garden Illuminance"
+
+
+@pytest.mark.usefixtures("noon")
+async def test_irradiance_disabled_by_default(
+    hass: HomeAssistant, setup_entry: SetupEntry, entity_registry: er.EntityRegistry
+) -> None:
+    """Test the irradiance sensor is disabled until the user enables it."""
+    await setup_entry()
+
+    entry = entity_registry.async_get("sensor.solar_irradiance")
+    assert entry is not None
+    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert hass.states.get("sensor.solar_irradiance") is None

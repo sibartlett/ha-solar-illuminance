@@ -6,7 +6,6 @@
         "title": "Illuminance Options",
         "description": "Default divider is 1 if no weather data source selected, and 10 if one is selected.",
         "data": {
-          "mode": "[%key:common::config_flow::data::mode%]",
           "entity_id": "Weather data source",
           "scan_interval": "Update period in minutes",
           "fallback": "Illuminance divider when no weather data"
@@ -31,20 +30,10 @@
         "title": "[%key:component::solar_illuminance::config::step::options::title%]",
         "description": "[%key:component::solar_illuminance::config::step::options::description%]",
         "data": {
-          "mode": "[%key:common::config_flow::data::mode%]",
           "entity_id": "[%key:component::solar_illuminance::config::step::options::data::entity_id%]",
           "scan_interval": "[%key:component::solar_illuminance::config::step::options::data::scan_interval%]",
           "fallback": "[%key:component::solar_illuminance::config::step::options::data::fallback%]"
         }
-      }
-    }
-  },
-  "selector": {
-    "mode": {
-      "options": {
-        "normal": "Normal",
-        "simple": "Simple",
-        "irradiance": "Irradiance"
       }
     }
   },

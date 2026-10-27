@@ -5,8 +5,9 @@ from datetime import datetime
 from typing import Any
 
 from freezegun.api import FrozenDateTimeFactory
-from homeassistant.const import CONF_MODE, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
@@ -25,6 +26,7 @@ SUNSET = datetime.fromisoformat("2026-06-22T03:00:13+00:00")
 # A fixed ID, as it is also the sensor's unique ID, which snapshots include.
 ENTRY_ID = "01K8GQ5M0Z6Y3W2V1T9S8R7Q6P"
 ENTITY_ID = "sensor.solar_illuminance"
+IRRADIANCE_ENTITY_ID = "sensor.solar_irradiance"
 WEATHER_ENTITY_ID = "weather.home"
 
 type SetupEntry = Callable[..., Awaitable[MockConfigEntry]]
@@ -49,17 +51,27 @@ def noon(freezer: FrozenDateTimeFactory) -> FrozenDateTimeFactory:
 
 
 @pytest.fixture
+def enable_irradiance(entity_registry: er.EntityRegistry) -> None:
+    """Enable the irradiance sensor, which is disabled by default."""
+    entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        f"{ENTRY_ID}_irradiance",
+        suggested_object_id="solar_irradiance",
+        disabled_by=None,
+    )
+
+
+@pytest.fixture
 def setup_entry(hass: HomeAssistant) -> SetupEntry:
     """Return a function that sets up a config entry with the given options."""
 
-    async def _setup(
-        *, title: str = "Solar Illuminance", **options: Any
-    ) -> MockConfigEntry:
+    async def _setup(*, title: str = "Solar", **options: Any) -> MockConfigEntry:
         entry = MockConfigEntry(
             domain=DOMAIN,
             entry_id=ENTRY_ID,
             title=title,
-            options={CONF_MODE: "normal", CONF_SCAN_INTERVAL: 5} | options,
+            options={CONF_SCAN_INTERVAL: 5} | options,
         )
         entry.add_to_hass(hass)
         assert await hass.config_entries.async_setup(entry.entry_id)

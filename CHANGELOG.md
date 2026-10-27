@@ -11,6 +11,21 @@ The integration is now Solar Illuminance, with the domain `solar_illuminance`,
 so it can be installed alongside Illuminance. Sensors from Illuminance aren't
 moved over: add them again in Solar Illuminance, then remove Illuminance.
 
+### Illuminance and irradiance sensors, without modes
+
+The mode option has been removed. Each entry now has two sensors, on a device
+named after the entry: Illuminance, in lx, and Irradiance, in W/m², which is
+disabled until you enable it. Both follow the sun's elevation, as normal mode
+did.
+
+- Simple mode has gone: its value only changed with the time of day and the
+  weather. Automations written for it need new levels.
+- Irradiance mode is now the irradiance sensor.
+- The default name is now "Solar", giving "Solar Illuminance" and "Solar
+  Irradiance". The sensors are named after the entry and their device class,
+  so an entry named "Garden" has "Garden Illuminance" and "Garden
+  Irradiance".
+
 ### Set up in the UI only
 
 YAML configuration is no longer supported, and the `reload` action has been
@@ -53,22 +68,11 @@ changes or is fixed. It used to be logged as an error each time the weather
 changed. A cloud coverage sensor whose state isn't a number is logged the
 same way, as an unexpected condition.
 
-### Simple mode follows a change of location
-
-In simple mode, changing Home Assistant's location or time zone used to
-leave the sensor using the old sunrise and sunset until the next day. It
-now uses the new ones straight away.
-
 ### Diagnostics
 
-Each sensor's diagnostics can be downloaded, to include when reporting a
+Each entry's diagnostics can be downloaded, to include when reporting a
 problem. They have its options, how its value was worked out, and the
 weather data source's state.
-
-### Each sensor has a device
-
-Each sensor now belongs to a device of its own, named after the sensor.
-Renaming the sensor's entry renames both.
 
 ### Requires Home Assistant 2026.7
 

@@ -1,17 +1,15 @@
 # serializer version: 1
 # name: test_diagnostics
   dict({
-    'options': dict({
-      'entity_id': 'weather.home',
-      'mode': 'normal',
-      'scan_interval': 5,
-    }),
-    'sensor': dict({
+    'calculation': dict({
       'divisor': 6.309573444801933,
-      'entity_id': 'sensor.solar_illuminance',
-      'value': 19389,
+      'illuminance': 19388.575999630728,
       'weather': '(cloudy, 80%)',
       'weather_unavailable_since': None,
+    }),
+    'options': dict({
+      'entity_id': 'weather.home',
+      'scan_interval': 5,
     }),
     'weather_source': dict({
       'attributes': dict({
@@ -26,33 +24,29 @@
 # ---
 # name: test_diagnostics_no_weather_entity
   dict({
-    'options': dict({
-      'mode': 'normal',
-      'scan_interval': 5,
-    }),
-    'sensor': dict({
+    'calculation': dict({
       'divisor': 1,
-      'entity_id': 'sensor.solar_illuminance',
-      'value': 122334,
+      'illuminance': 122333.64425979415,
       'weather': 'without weather data',
       'weather_unavailable_since': None,
+    }),
+    'options': dict({
+      'scan_interval': 5,
     }),
     'weather_source': None,
   })
 # ---
 # name: test_diagnostics_unavailable
   dict({
-    'options': dict({
-      'entity_id': 'weather.home',
-      'mode': 'normal',
-      'scan_interval': 5,
-    }),
-    'sensor': dict({
+    'calculation': dict({
       'divisor': 10,
-      'entity_id': 'sensor.solar_illuminance',
-      'value': 12233,
+      'illuminance': 12233.364425979415,
       'weather': 'without weather data',
       'weather_unavailable_since': '2026-06-21T19:50:00+00:00',
+    }),
+    'options': dict({
+      'entity_id': 'weather.home',
+      'scan_interval': 5,
     }),
     'weather_source': dict({
       'attributes': dict({

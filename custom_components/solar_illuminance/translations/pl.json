@@ -5,7 +5,6 @@
             "options": {
                 "title": "Opcje natężenia światła",
                 "data": {
-                    "mode": "Tryb",
                     "entity_id": "Źródło danych pogodowych",
                     "scan_interval": "Okres aktualizacji w minutach",
                     "fallback": "Dzielnik natężenia oświetlenia w przypadku braku danych pogodowych"
@@ -29,20 +28,10 @@
             "options": {
                 "title": "Opcje natężenia światła",
                 "data": {
-                    "mode": "Tryb",
                     "entity_id": "Źródło danych pogodowych",
                     "scan_interval": "Okres aktualizacji w minutach",
                     "fallback": "Dzielnik natężenia oświetlenia w przypadku braku danych pogodowych"
                 }
-            }
-        }
-    },
-    "selector": {
-        "mode": {
-            "options": {
-                "normal": "Normalny",
-                "simple": "Prosty",
-                "irradiance": "Natężenie promieniowania"
             }
         }
     }

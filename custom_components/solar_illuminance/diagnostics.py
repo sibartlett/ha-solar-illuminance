@@ -5,7 +5,7 @@ from typing import Any
 from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.core import HomeAssistant
 
-from .sensor import SolarIlluminanceConfigEntry
+from .coordinator import SolarIlluminanceConfigEntry
 
 
 async def async_get_config_entry_diagnostics(
@@ -24,6 +24,6 @@ async def async_get_config_entry_diagnostics(
         }
     return {
         "options": dict(entry.options),
-        "sensor": entry.runtime_data.diagnostics(),
+        "calculation": entry.runtime_data.diagnostics(),
         "weather_source": weather_source,
     }
