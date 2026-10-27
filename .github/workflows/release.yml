@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to attach solar_illuminance.zip to, e.g. 6.0.0
+        description: Release tag to attach solar_illuminance.zip to, e.g. v6.0.0
         required: true
 
 permissions:
@@ -25,10 +25,9 @@ jobs:
         with:
           ref: ${{ env.TAG }}
       - name: Check the manifest's version matches the tag
-        # The tag may have a leading v, e.g. v6.0.0.
         run: |
           version=$(jq -r .version custom_components/solar_illuminance/manifest.json)
-          if [ "$version" != "${TAG#v}" ]; then
+          if [ "v$version" != "$TAG" ]; then
             echo "::error::manifest.json says $version, but the tag is $TAG"
             exit 1
           fi

@@ -16,5 +16,6 @@ latter. The other translations are edited by hand: if you add or change a
 string, leave them as they are unless you can translate it.
 
 For a release, bump `version` in `manifest.json`, add the changes to
-`CHANGELOG.md`, and publish a GitHub release tagged with the version. A
-workflow attaches the zip HACS installs.
+`CHANGELOG.md`, and publish a GitHub release tagged and titled with the
+version and a leading `v`, e.g. `v6.0.0`, with the version's changes as its
+description. A workflow attaches the zip HACS installs.
