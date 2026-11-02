@@ -3,4 +3,4 @@
 # Home Assistant version in hacs.json.
 pytest-homeassistant-custom-component==0.13.373
 ruff==0.17.3
-mypy==2.4.0
+mypy==2.4.1
