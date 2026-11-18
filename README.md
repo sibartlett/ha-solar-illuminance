@@ -188,3 +188,9 @@ Or, to keep an entity ID, remove the Illuminance sensor first, then give the new
 ## Changelog
 
 See [CHANGELOG.md](https://github.com/sibartlett/ha-solar-illuminance/blob/master/CHANGELOG.md).
+
+## License
+
+Solar Illuminance is licensed under the [Apache License 2.0](https://github.com/sibartlett/ha-solar-illuminance/blob/master/LICENSE), the same license as Home Assistant.
+
+It is a fork of [Illuminance](https://github.com/pnbruckner/ha-illuminance), which Phil Bruckner and its contributors released into the public domain under the [Unlicense](https://unlicense.org). See [NOTICE](https://github.com/sibartlett/ha-solar-illuminance/blob/master/NOTICE).

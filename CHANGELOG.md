@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.0.1 (2026-11-18)
+
+- **Licensed under the Apache License 2.0**, the same license as Home
+  Assistant. Earlier releases, and the Illuminance code this is built on,
+  remain in the public domain under the Unlicense. Nothing else has
+  changed.
+
 ## 6.0.0 (2026-10-27)
 
 The first release of Solar Illuminance, a fork of
