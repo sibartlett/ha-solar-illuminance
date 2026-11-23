@@ -1,6 +1,6 @@
 # <img src="https://raw.githubusercontent.com/sibartlett/ha-solar-illuminance/master/custom_components/solar_illuminance/brand/icon.png" alt="Solar Illuminance" width="50" height="50"/> Solar Illuminance
 
-[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
+[![HACS](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://hacs.xyz)
 [![Release](https://img.shields.io/github/v/release/sibartlett/ha-solar-illuminance)](https://github.com/sibartlett/ha-solar-illuminance/releases)
 [![Tests](https://github.com/sibartlett/ha-solar-illuminance/actions/workflows/tests.yml/badge.svg)](https://github.com/sibartlett/ha-solar-illuminance/actions/workflows/tests.yml)
 
@@ -17,23 +17,18 @@ Coming from Illuminance? See [Moving from Illuminance](#moving-from-illuminance)
 
 ## Installation
 
-The integration software must first be installed as a custom component.
-You can use HACS to manage the installation and provide update notifications.
+Solar Illuminance is in the default [HACS](https://hacs.xyz) repository, which can manage the installation and provide update notifications.
 Or you can manually install the software.
 
 <details>
 <summary>With HACS</summary>
 
-1. Add this repo as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/):
-   It should then appear as a new integration. Click on it. If necessary, search for "solar illuminance".
-   ```text
-   https://github.com/sibartlett/ha-solar-illuminance
-   ```
+1. In HACS, search for "Solar Illuminance" and open it.
    Or use this button:
-  
+
    [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sibartlett&repository=ha-solar-illuminance&category=integration)
 
-1. Download the integration using the appropriate button.
+1. Select **Download**.
 1. Restart Home Assistant.
 
 </details>

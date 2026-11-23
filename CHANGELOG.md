@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **In the default HACS repository.** Search for "Solar Illuminance" in
+  HACS to install it, without adding a custom repository first.
+
 ## 6.0.1 (2026-11-18)
 
 - **Licensed under the Apache License 2.0**, the same license as Home
